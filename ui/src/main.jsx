@@ -213,6 +213,19 @@ function App() {
         <RecentOrders />
         <MarketStats />
         <Explanations />
+        <section className="content-section">
+          <h2 className="gold-heading">For judges</h2>
+          <div className="phase-card panel">
+            <div className="phase-heading"><span className="gold-dot"/><strong>Try it in 20 seconds</strong><span className="live-pill">DEVNET</span></div>
+            <p>1. Leave the ticket as is, or set your own limit and shares. 2. Press "Seal order and run to the open". A burner wallet is funded for you; no wallet needed. 3. Watch the timeline go Seal, Reveal, Clear, Settle on devnet, then read your open print and your weekend book. Each step is a real transaction; open it in the explorer from the ticket note.</p>
+          </div>
+        </section>
+        <section className="content-section">
+          <h2 className="gold-heading">Business model</h2>
+          <div className="phase-card panel">
+            <p>MONDAY OPEN charges a small fee in basis points on the notional of every share that clears at the open, paid by both sides. Issuers and venues that list tokenized stocks (xStocks distributors, Solana DEXs and wallets) integrate the auction so their users get a fair Monday price instead of a weekend gap, and can share the fee. Market makers pay nothing to quote but must post escrow, which keeps the book honest.</p>
+          </div>
+        </section>
         <div className="devnet-card panel"><Wallet size={21}/><div><strong>Need devnet SOL?</strong><span>Fund a burner wallet to place orders.</span></div><DevnetButton /></div>
       </div>
     </main>
