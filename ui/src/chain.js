@@ -138,3 +138,13 @@ export async function liveBook() {
   return { auction: all[0].publicKey.toBase58(), orders: c.orderCount, commitEnd: c.commitEnd.toNumber(), revealEnd: c.revealEnd.toNumber(), cleared: c.cleared,
     lastPrint: last ? last.account.clearPrice.toNumber() : null, lastQty: last ? last.account.matchedQty.toNumber() : null, rounds: all.length };
 }
+
+/** Seeded open prints for the chart: every cleared seeded round at the current Friday close, oldest first. */
+export async function openPrints(limit = 12) {
+  const all = await program.account.auction.all([{ memcmp: { offset: 8, bytes: SEEDER.toBase58() } }]);
+  return all
+    .filter((x) => x.account.cleared && x.account.matchedQty.toNumber() > 0 && x.account.fridayClose.toNumber() === FRI)
+    .sort((a, b) => a.account.revealEnd.toNumber() - b.account.revealEnd.toNumber())
+    .slice(-limit)
+    .map((x) => ({ px: x.account.clearPrice.toNumber(), t: x.account.revealEnd.toNumber() }));
+}

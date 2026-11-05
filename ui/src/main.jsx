@@ -5,7 +5,7 @@ import {
   CircleHelp, Clock3, LockKeyhole, Menu, Wallet, ShieldCheck, BarChart3, Link2
 } from "lucide-react";
 import "./styles.css";
-import { kp, pid, short, explorer, usd, FRI, fund, balance, runWeekend, liveBook } from "./chain.js";
+import { kp, pid, short, explorer, usd, FRI, fund, balance, runWeekend, liveBook, openPrints } from "./chain.js";
 
 // Shared demo state: the visitor's one-click weekend run + the seeded rolling book.
 const Demo = createContext(null);
@@ -50,16 +50,35 @@ function Header() {
   </header>;
 }
 
+// Live data swap (branch live-chart): same markup and classes as kaverimeshram's chart.
+// Plots real seeded open prints vs the Friday close; falls back to the illustrative series
+// until at least 2 prints exist on chain.
 function PriceChart() {
-  return <div className="chart-wrap" aria-label="Illustrative weekly price chart">
-    <div className="chart-ylabels"><span>260</span><span>250</span><span>240</span></div>
-    <svg className="chart" viewBox="0 0 455 100" role="img" aria-label="Illustrative TSLAx weekly chart">
+  const [prints, setPrints] = useState([]);
+  useEffect(() => { openPrints().then(setPrints).catch(() => {}); const t = setInterval(() => openPrints().then(setPrints).catch(() => {}), 60000); return () => clearInterval(t); }, []);
+  const live = prints.length >= 2;
+  let points = chartPoints, last = [442, 49], ylabels = ["260", "250", "240"], xlabels = ["Mon", "Tue", "Wed", "Thu", "Fri"], fri = null;
+  if (live) {
+    const vals = [...prints.map((p) => p.px), FRI];
+    const lo = Math.min(...vals) * 0.998, hi = Math.max(...vals) * 1.002;
+    const X = (i) => Math.round((i / (prints.length - 1)) * 442), Y = (v) => Math.round(100 - ((v - lo) / (hi - lo)) * 96 - 2);
+    points = prints.map((p, i) => `${X(i)},${Y(p.px)}`).join(" ");
+    last = [X(prints.length - 1), Y(prints[prints.length - 1].px)];
+    ylabels = [hi, (hi + lo) / 2, lo].map((v) => (v / 10).toFixed(0));
+    const fmt = (t) => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    xlabels = [0, 1, 2, 3, 4].map((k) => fmt(prints[Math.round((k / 4) * (prints.length - 1))].t));
+    fri = Y(FRI);
+  }
+  return <div className="chart-wrap" aria-label={live ? "Seeded Monday-open prints vs Friday close" : "Illustrative weekly price chart"}>
+    <div className="chart-ylabels">{ylabels.map((l, i) => <span key={i}>{l}</span>)}</div>
+    <svg className="chart" viewBox="0 0 455 100" role="img" aria-label={live ? "TSLAx seeded open prints" : "Illustrative TSLAx weekly chart"}>
       <defs><linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#00d6a0" stopOpacity=".22"/><stop offset="100%" stopColor="#00d6a0" stopOpacity="0"/></linearGradient></defs>
-      <path d={`M ${chartPoints} L442,100 L0,100 Z`} fill="url(#chartFill)" />
-      <polyline points={chartPoints} fill="none" stroke="#00d6a0" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx="442" cy="49" r="4.5" fill="#f6f0df" stroke="#00d6a0" strokeWidth="2"/>
+      <path d={`M ${points} L${last[0]},100 L0,100 Z`} fill="url(#chartFill)" />
+      {fri !== null && <line x1="0" x2="455" y1={fri} y2={fri} stroke="#f6f0df" strokeOpacity=".35" strokeDasharray="3 3" />}
+      <polyline points={points} fill="none" stroke="#00d6a0" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={last[0]} cy={last[1]} r="4.5" fill="#f6f0df" stroke="#00d6a0" strokeWidth="2"/>
     </svg>
-    <div className="chart-days"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span></div>
+    <div className="chart-days">{xlabels.map((l, i) => <span key={i}>{l}</span>)}</div>
   </div>;
 }
 
