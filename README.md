@@ -8,6 +8,12 @@ Stocks close Friday; their tokens keep trading all weekend on thin books, and dr
 - Program (devnet): `BK1xCrXCRS3PaayeD93T69YCaAEkWQXaW1sYCzseCusA`
 - Evidence: [Solana Foundation on xStocks](https://x.com/SolanaFndn/status/2098845926961852523), [Julian Ma on weekend pricing](https://x.com/_julianma/status/2089357641759773112)
 
+## How we differ from Afterhours
+
+Afterhours (Crypto World's Fair, submitted Oct 8) is "risk infrastructure for markets that never sleep": it forecasts reopening downside for 24/7 tokenized equities, maps it to lending exposure, and gives curators an auditable hold/reduce decision, with Robinhood Stock Tokens as its wedge (it reports 32 of 35 Robinhood Stock Token feeds going silent over weekends across 8 weeks). It hedges the risk of the weekend gap.
+
+MONDAY OPEN works on the price itself: every weekend order is sealed and all of them clear at one fair uniform price at the open, so the reopening is set by the whole book rather than by whoever trades first. The two are complementary: a fair open price is a better input for any risk engine.
+
 ## How it works
 
 | Step | Instruction | What is public |
