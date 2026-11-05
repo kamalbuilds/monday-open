@@ -1,0 +1,16 @@
+.anchor
+.DS_Store
+target/
+!target/idl/
+!target/types/
+node_modules/
+app/node_modules/
+app/dist/
+app/.wrangler/
+test-ledger/
+.keys/
+.scratch/
+.seed-current.json
+seed.log
+*.log
+mitm_mcp_traffic.db
