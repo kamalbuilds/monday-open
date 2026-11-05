@@ -1,0 +1,618 @@
+{
+  "address": "BK1xCrXCRS3PaayeD93T69YCaAEkWQXaW1sYCzseCusA",
+  "metadata": {
+    "name": "monday_open",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "clear",
+      "docs": [
+        "Monday open: anyone cranks with every revealed order as remaining accounts."
+      ],
+      "discriminator": [
+        250,
+        39,
+        28,
+        213,
+        123,
+        163,
+        133,
+        5
+      ],
+      "accounts": [
+        {
+          "name": "auction",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "commit_order",
+      "docs": [
+        "Seal an order: only a hash and a deposit are public."
+      ],
+      "discriminator": [
+        106,
+        167,
+        189,
+        186,
+        74,
+        113,
+        139,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "auction",
+          "writable": true
+        },
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "auction"
+              },
+              {
+                "kind": "account",
+                "path": "auction.order_count",
+                "account": "Auction"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "auction"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "commitment",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "deposit",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "create_auction",
+      "discriminator": [
+        234,
+        6,
+        201,
+        246,
+        47,
+        219,
+        176,
+        107
+      ],
+      "accounts": [
+        {
+          "name": "auction",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "arg",
+                "path": "auction_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "auction"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "auction_id",
+          "type": "u64"
+        },
+        {
+          "name": "symbol",
+          "type": "string"
+        },
+        {
+          "name": "friday_close",
+          "type": "u64"
+        },
+        {
+          "name": "commit_end",
+          "type": "i64"
+        },
+        {
+          "name": "reveal_end",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "reveal_order",
+      "docs": [
+        "Open the seal. side: 0 = buy, 1 = sell. price in ticks ($0.01)."
+      ],
+      "discriminator": [
+        25,
+        244,
+        42,
+        219,
+        17,
+        156,
+        211,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "auction",
+          "writable": true,
+          "relations": [
+            "order"
+          ]
+        },
+        {
+          "name": "order",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "signer": true,
+          "relations": [
+            "order"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "side",
+          "type": "u8"
+        },
+        {
+          "name": "price",
+          "type": "u64"
+        },
+        {
+          "name": "qty",
+          "type": "u64"
+        },
+        {
+          "name": "salt",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "settle",
+      "docs": [
+        "Pay out one order: pro-rata fill on the heavy side, refund the rest."
+      ],
+      "discriminator": [
+        175,
+        42,
+        185,
+        87,
+        144,
+        131,
+        102,
+        212
+      ],
+      "accounts": [
+        {
+          "name": "auction",
+          "relations": [
+            "order"
+          ]
+        },
+        {
+          "name": "order",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "auction"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "relations": [
+            "order"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Auction",
+      "discriminator": [
+        218,
+        94,
+        247,
+        242,
+        126,
+        233,
+        131,
+        81
+      ]
+    },
+    {
+      "name": "Order",
+      "discriminator": [
+        134,
+        173,
+        223,
+        185,
+        77,
+        86,
+        28,
+        51
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "Cleared",
+      "discriminator": [
+        47,
+        147,
+        107,
+        125,
+        87,
+        47,
+        3,
+        100
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "SymbolTooLong"
+    },
+    {
+      "code": 6001,
+      "name": "BadWindow"
+    },
+    {
+      "code": 6002,
+      "name": "CommitClosed"
+    },
+    {
+      "code": 6003,
+      "name": "BookFull"
+    },
+    {
+      "code": 6004,
+      "name": "ZeroDeposit"
+    },
+    {
+      "code": 6005,
+      "name": "RevealNotOpen"
+    },
+    {
+      "code": 6006,
+      "name": "RevealClosed"
+    },
+    {
+      "code": 6007,
+      "name": "AlreadyRevealed"
+    },
+    {
+      "code": 6008,
+      "name": "BadOrder"
+    },
+    {
+      "code": 6009,
+      "name": "BadReveal"
+    },
+    {
+      "code": 6010,
+      "name": "Underfunded"
+    },
+    {
+      "code": 6011,
+      "name": "Overflow"
+    },
+    {
+      "code": 6012,
+      "name": "NotOpenYet"
+    },
+    {
+      "code": 6013,
+      "name": "AlreadyCleared"
+    },
+    {
+      "code": 6014,
+      "name": "WrongAuction"
+    },
+    {
+      "code": 6015,
+      "name": "DuplicateOrder"
+    },
+    {
+      "code": 6016,
+      "name": "MissingOrders"
+    },
+    {
+      "code": 6017,
+      "name": "NotCleared"
+    },
+    {
+      "code": 6018,
+      "name": "AlreadySettled"
+    }
+  ],
+  "types": [
+    {
+      "name": "Auction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "auction_id",
+            "type": "u64"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "friday_close",
+            "type": "u64"
+          },
+          {
+            "name": "commit_end",
+            "type": "i64"
+          },
+          {
+            "name": "reveal_end",
+            "type": "i64"
+          },
+          {
+            "name": "order_count",
+            "type": "u16"
+          },
+          {
+            "name": "revealed_count",
+            "type": "u16"
+          },
+          {
+            "name": "cleared",
+            "type": "bool"
+          },
+          {
+            "name": "clear_price",
+            "type": "u64"
+          },
+          {
+            "name": "matched_qty",
+            "type": "u64"
+          },
+          {
+            "name": "buy_eligible",
+            "type": "u64"
+          },
+          {
+            "name": "sell_eligible",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleared",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "auction",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "matched",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Order",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "auction",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u16"
+          },
+          {
+            "name": "commitment",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "deposit",
+            "type": "u64"
+          },
+          {
+            "name": "revealed",
+            "type": "bool"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "qty",
+            "type": "u64"
+          },
+          {
+            "name": "filled",
+            "type": "u64"
+          },
+          {
+            "name": "settled",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}
