@@ -103,17 +103,18 @@ function curve(rows: any[], px: number) {
     : `<text x="${x + 6}" y="${y}" fill="${c}" font-family="IBM Plex Mono" font-size="11" paint-order="stroke" stroke="#10261f" stroke-width="4">${t}</text>`;
   $("curve").innerHTML = `<line x1="40" y1="180" x2="540" y2="180" stroke="#2a4a3e"/>
     <polyline points="${pts(D)}" fill="none" stroke="#5fbf8a" stroke-width="2"/>
-    <polyline points="${pts(S)}" fill="none" stroke="#e0775b" stroke-width="2"/>
+    <polyline points="${pts(S)}" fill="none" stroke="#e0775b" stroke-width="2" stroke-dasharray="6 3"/>
+    <circle cx="${X(px)}" cy="${Y(Math.min(D(px), S(px)))}" r="5" fill="#d4a24c"/>
+    ${lab(X(px), Y(Math.min(D(px), S(px))) - 10, "#f3ecdc", `${Math.min(D(px), S(px))} crossed here`)}
     <line x1="${X(px)}" y1="14" x2="${X(px)}" y2="180" stroke="#d4a24c" stroke-dasharray="4 3"/>
     <line x1="${X(FRI)}" y1="14" x2="${X(FRI)}" y2="180" stroke="#8fa79c" stroke-dasharray="1 3"/>
     ${lab(X(px), 24, "#d4a24c", "open " + usd(px))}
     ${lab(X(FRI) + (X(FRI) > 400 ? 0 : 0), 172, "#c9d3cc", "Fri close " + usd(FRI))}
     ${[lo, (lo + hi) / 2, hi].map((p, k) => `<text x="${X(p)}" y="200" text-anchor="${["start", "middle", "end"][k]}" fill="#8fa79c" font-family="IBM Plex Mono" font-size="11">${usd(Math.round(p))}</text>`).join("")}
     <text x="34" y="24" text-anchor="end" fill="#8fa79c" font-family="IBM Plex Mono" font-size="11">${maxQ}</text>
-    <text x="34" y="40" text-anchor="end" fill="#8fa79c" font-family="IBM Plex Mono" font-size="10">shares</text>
     <text x="34" y="184" text-anchor="end" fill="#8fa79c" font-family="IBM Plex Mono" font-size="11">0</text>
-    <text x="40" y="222" fill="#5fbf8a" font-family="IBM Plex Mono" font-size="11">demand (shares bid at or above)</text>
-    <text x="300" y="222" fill="#e0775b" font-family="IBM Plex Mono" font-size="11">supply (shares offered at or below)</text>`;
+    <text x="40" y="222" fill="#5fbf8a" font-family="IBM Plex Mono" font-size="11">demand (bid at or above)</text>
+    <text x="300" y="222" fill="#e0775b" font-family="IBM Plex Mono" font-size="11">supply, dashed (offered at or below)</text>`;
 }
 
 async function chainNow() { const s = await conn.getSlot(); return (await conn.getBlockTime(s)) ?? Math.floor(Date.now() / 1000); }
@@ -169,13 +170,14 @@ async function run(side: number, price: number, qty: number) {
   renderBook(rows, filled, px);
   step("settle", "done");
   ($("print") as HTMLElement).hidden = false;
-  if (m === 0) { $("px").textContent = "No cross"; $("pxmeta").textContent = "Bids and offers didn't overlap. Every order was refunded."; }
+  if (m === 0) { $("px").textContent = "No cross"; $("pxmeta").textContent = "Bids and offers didn't overlap. Every order was refunded."; $("cap").textContent = ""; }
   else {
     const bps = Math.round(((px - FRI) / FRI) * 10000);
     $("px").textContent = usd(px);
     $("pxmeta").innerHTML = `<div><b>Crossed</b>${m} share${m === 1 ? "" : "s"}, one price</div><div><b>Vs Friday close</b>${bps >= 0 ? "+" : ""}${bps} bps</div><div><b>Your order</b>${filled[0] ? `filled ${filled[0]} at ${usd(px)}` : "not filled, refunded"}</div>`;
     void drift;
     curve(rows, px);
+    $("cap").textContent = `One price: where the most shares cross (ties: smaller imbalance, then nearest Friday close).`;
   }
   log(`Cleared ${tx(s4)} · settled ${tx(s5)}`);
   await balance();
@@ -202,10 +204,11 @@ async function live() {
     all.sort((a: any, b: any) => b.account.revealEnd.toNumber() - a.account.revealEnd.toNumber());
     const cur = all[0], last = all.find((x: any) => x.account.cleared && x.account.matchedQty.toNumber() > 0 && x.account.fridayClose.toNumber() === FRI);
     const now = Math.floor(Date.now() / 1000), c = cur.account;
-    const phase = c.cleared ? "printed" : now < c.commitEnd.toNumber() ? `sealing · reveal in ${c.commitEnd.toNumber() - now}s` : now < c.revealEnd.toNumber() ? `revealing · open in ${c.revealEnd.toNumber() - now}s` : "awaiting open crank";
-    setLive(`<div class="row"><div><b>Phase</b><a target="_blank" rel="noopener" href="https://explorer.solana.com/address/${cur.publicKey.toBase58()}?cluster=devnet">${phase}</a></div>
+    const mmss = (t: number) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+    const phase = c.cleared ? "printed" : now < c.commitEnd.toNumber() ? `sealing · reveal in ${mmss(c.commitEnd.toNumber() - now)}` : now < c.revealEnd.toNumber() ? `revealing · open in ${mmss(c.revealEnd.toNumber() - now)}` : "awaiting open crank";
+    setLive(`<div class="row"><div><b>This round</b>${phase} · <a target="_blank" rel="noopener" href="https://explorer.solana.com/address/${cur.publicKey.toBase58()}?cluster=devnet">explorer</a></div>
       <div><b>Sealed orders</b>${c.orderCount}</div>
-      <div><b>Last open print</b>${last ? usd(last.account.clearPrice.toNumber()) + " × " + last.account.matchedQty.toNumber() : "none yet"}</div></div>`, true);
+      <div><b>Their last print</b>${last ? usd(last.account.clearPrice.toNumber()) + " × " + last.account.matchedQty.toNumber() : "none yet"}</div></div>`, true);
   } catch (e) { setLive("Rolling book unavailable (devnet RPC busy)."); }
 }
 live(); setInterval(live, 15000);

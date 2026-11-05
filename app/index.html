@@ -19,10 +19,6 @@
     <h1>Stocks close Friday. Tokens trade all weekend.<br/>Monday gets one fair price.</h1>
     <p class="sub">xStocks drift about <b>±385 bps</b> while the underlying market sleeps. MONDAY OPEN seals weekend orders and clears them all at one price at the open, so nobody can trade against your limit.</p>
   </div>
-  <aside class="live" id="live" aria-live="polite">
-    <p class="kicker">Rolling weekend book</p>
-    <div class="liveBody">Loading the current weekend auction…</div>
-  </aside>
   </section>
 
   <section class="desk">
@@ -33,6 +29,7 @@
         <label><input type="radio" name="side" value="1" /><span>Sell</span></label>
       </div>
       <label class="fld"><span>Limit price (USD)</span><input id="price" type="number" step="0.1" min="1" value="384.10" /></label>
+      <p class="rule-note">Buys fill at the print when your limit is at or above it; sells when at or below. The heavier side fills pro rata.</p>
       <label class="fld"><span>Shares</span><input id="qty" inputmode="numeric" type="number" step="1" min="1" max="3" value="1" /></label>
       <button id="seal" type="submit">Seal order</button>
       <p class="fine">Runs a compressed weekend on devnet: about 9s sealed, 6s reveal, then the open.</p>
@@ -47,9 +44,10 @@
         <li data-k="settle"><b>Settle</b><span>Fills paid at that price, the rest refunded</span></li>
       </ol>
       <div class="print" id="print" hidden>
-        <p class="kicker">Monday open print</p>
+        <p class="kicker">Your demo weekend · Monday open print</p>
         <div class="px" id="px"></div>
         <div class="pxmeta" id="pxmeta"></div>
+        <p class="cap" id="cap"></p>
         <svg id="curve" viewBox="0 0 560 228" role="img" aria-label="Supply and demand at the open"></svg>
       </div>
       <table class="book" id="book" hidden>
@@ -62,7 +60,7 @@
 
 
 
-  <aside class="live live-m" aria-hidden="true"><p class="kicker">Rolling weekend book</p><div class="liveBody"></div></aside>
+  <aside class="live live-m" aria-hidden="true"><p class="kicker">Other desks · live 30-minute weekends</p><div class="liveBody"></div></aside>
 
   <section class="rules" aria-labelledby="rules-h">
     <h2 id="rules-h">House rules of the open</h2>
@@ -71,7 +69,7 @@
       <dt>One price for everyone</dt><dd>The clearing price is the level that crosses the most shares. Every filled order pays it, so the open is set by the whole weekend book, not the first bot awake.</dd>
       <dt>Escrow, then settle</dt><dd>Commit, reveal, clear and settle are Anchor instructions on devnet. Deposits sit in a program vault; the heavy side fills pro rata and the rest is refunded.</dd>
     </dl>
-    <p class="src">Sources: <a href="https://x.com/SolanaFndn/status/2098845926961852523" target="_blank" rel="noopener">Solana Foundation on xStocks</a> · <a href="https://x.com/_julianma/status/2089357641759773112" target="_blank" rel="noopener">Julian Ma on weekend pricing</a> · ±385 bps is our measured Friday close to Monday open drift on tokenized stocks.</p>
+    <p class="src">±385 bps is our measurement of tokenized-stock moves from Friday close to Monday open. Sources: <a href="https://x.com/SolanaFndn/status/2098845926961852523" target="_blank" rel="noopener">Solana Foundation on xStocks</a> · <a href="https://x.com/_julianma/status/2089357641759773112" target="_blank" rel="noopener">Julian Ma on weekend pricing</a>.</p>
   </section>
 </main>
 <script type="module" src="/src/main.ts"></script>

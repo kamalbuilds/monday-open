@@ -23,9 +23,9 @@ Settlement is native devnet SOL: 1 price tick per share = 1000 lamports. The app
 
 - `programs/monday-open/src/lib.rs`: Anchor program (+ Rust unit tests of the clearing rule)
 - `tests/monday-open.ts`: validator integration test (create, seal 4, early/bad reveal rejected, partial clear rejected, clears at $103 x 10, exact payouts, double settle rejected)
-- `app/`: Vite + TypeScript frontend, Cloudflare Pages project `monday-open`; `app/functions/api/faucet.ts` signs a small devnet drip (the public devnet RPC blocks Cloudflare egress, so the browser submits it)
+- `ui/`: the live frontend. React + Vite UI designed by [kaverimeshram](https://github.com/kaverimeshram/monday), wired to the devnet program in `ui/src/chain.js` (burner wallet, faucet, one-click compressed weekend, seeded rolling book). Deployed to Cloudflare Pages project `monday-open`. `ui/functions/api/faucet.ts` signs a small devnet drip (the public devnet RPC blocks Cloudflare egress, so the browser submits it)
+- `app/`: our first frontend (superseded; kept for reference, not deployed)
 - `scripts/seed.mjs`: rolling seeded market. 4 desk wallets run back-to-back weekend auctions (seal, reveal, clear, settle), resume an interrupted round from `.seed-current.json`, and refuse to run off devnet/localnet
-- `app/docs/design/`: cwf-pro-ui artifacts (references, DESIGN.md, components, critique rounds, design review)
 
 ## Run it
 
@@ -35,7 +35,7 @@ anchor idl build -o target/idl/monday_open.json -t target/types/monday_open.ts
 cargo test --manifest-path programs/monday-open/Cargo.toml   # 3 unit tests
 anchor test --skip-build                                     # validator integration test
 node scripts/seed.mjs --commit 1500 --reveal 300 --desks 4   # rolling market on devnet
-cd app && npm run dev                                        # or npm run deploy
+cd ui && npm install && npm run dev                          # deploy: npx vite build && npx wrangler pages deploy dist --project-name monday-open --branch main
 ```
 
 ## Built before vs built during
@@ -46,7 +46,8 @@ Built before the hackathon window (not part of this submission's work):
 
 Built during the hackathon (all on Oct 10, 2026):
 - The Anchor program (commit-reveal, uniform clearing price, pro-rata settlement, vault escrow), its unit and integration tests, and the devnet deploy.
-- The frontend (order ticket, phase tape, open print with supply/demand curve, live rolling book), the devnet faucet function, and the Cloudflare Pages deploy.
+- The live UI's visual design is by kaverimeshram ([github.com/kaverimeshram/monday](https://github.com/kaverimeshram/monday)), cloned into `ui/` and kept as designed. We wired its screens to the devnet program: order ticket runs seal, reveal, clear and settle; the phase timeline and phase card follow the chain; "Your weekend book" and "Your open print" show the real run; the asset panel and auction status show the seeded rolling book; "Get devnet SOL" calls the faucet. Its price chart is still illustrative.
+- An earlier frontend of ours (`app/`), the devnet faucet function, and the Cloudflare Pages deploy.
 - The seed script, the headless e2e timing script, the design references/critique rounds, and this README.
 
 ## Limits (honest)
@@ -54,4 +55,4 @@ Built during the hackathon (all on Oct 10, 2026):
 - Devnet only. Never deployed to mainnet.
 - Order and auction accounts are not closed after settlement, so each run leaves about 0.002 SOL of rent per account; a `close_order` instruction is the next program change.
 - The clearing crank takes all orders as remaining accounts (max 24 per auction).
-- Demo runs and the seeder depend on scarce devnet SOL (public airdrops are rate-limited); the faucet function has no rate limit, so anyone can drain its small devnet balance.
+- Demo runs and the seeder depend on scarce devnet SOL (public airdrops are rate-limited); the faucet function has no rate limit, so anyone can drain its small devnet balance (about 0.03 SOL, 2 drips, left on Oct 10 night). The seeded rolling book is paused: its desk wallets were swept into the faucet to keep the one-click demo alive.

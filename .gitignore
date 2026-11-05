@@ -14,3 +14,5 @@ test-ledger/
 seed.log
 *.log
 mitm_mcp_traffic.db
+ui/dist/
+ui/.wrangler/
