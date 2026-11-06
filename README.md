@@ -49,6 +49,10 @@ Demand signals: [Solana Foundation, "build something new with equities on Solana
 
 Afterhours (Crypto World's Fair) is "risk infrastructure for markets that never sleep". It forecasts reopening downside for 24/7 tokenized equities, maps that to lending exposure, and gives curators a hold or reduce decision. Its wedge is Robinhood Stock Tokens: it reports 32 of 35 feeds going silent over weekends across 8 weeks. Afterhours hedges the risk of the gap. MONDAY OPEN works on the price itself: one fair sealed clearing price at the open. The two fit together, because a fair open price is a better input for any risk engine.
 
+## Go-to-market and distribution
+
+We will start with the weekend gap for one tokenized stock, then add more. The first users we are aiming at are holders and traders of xStocks on Solana who already trade over the weekend and lose to the Monday-morning race. The product is a contract, not a destination. Any Solana venue, wallet or xStocks distributor can call the program and show "seal your order for the Monday open" next to its normal order form, so our reach comes from the places those traders already use. We have not signed or announced any partner. Our first step is to put the open-source program and live devnet demo in front of those teams and ask them to try it with one ticker. Market makers are the other side of the book. A sealed auction with one clearing price lets them quote without being picked off, and that is our pitch to them. Revenue is planned as a small basis-point fee on shares that clear at the open, shared with the integrating venue. Demand signals so far are public posts: the Solana Foundation asking builders for new equities products, and Julian Ma's post on batch auctions for tokenized equities. We have no user traction yet beyond the devnet demo.
+
 ## Business model (planned)
 
 A small basis-point fee on the notional of every share that clears at the open. Venues, wallets and xStocks distributors integrate the auction so their users get a fair Monday price, and they share the fee.

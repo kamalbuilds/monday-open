@@ -1,36 +1,63 @@
 # MONDAY OPEN: Colosseum Crypto World's Fair submission checklist
 
-**Deadline: Tue Oct 13, 2026, 12:29 PM IST** (= 2026-10-12 23:59 PT per `cwf/docs/PORTAL-CHECKLIST.md`).
+**Deadline: Tue Oct 13, 2026, 12:29 PM IST** (2026-10-12 23:59 PT, per `cwf/docs/PORTAL-CHECKLIST.md`).
 
-> **Team leader: you must submit.** Official rules section 6(b): "Each Team member must visit colosseum.com to register for the Contest and the team leader must upload the Project Submission before the end of the Entry Period." FAQ h-faq-3: every team member creates a Colosseum account and the team leader adds them during product submission. Rules section 7: one Project Submission per team, and an entrant may be on only one team. MONDAY OPEN still has no named team leader (see PRODUCTS.md). **Kamal must decide who submits it.**
+Portal fields come from FAQ h-faq-11 (`cwf/docs/official/colosseum-faqs-2026-10-03.json`). Each draft below is ready to paste. Placeholders in [brackets] need Kamal's input.
 
-Sources: `cwf/docs/official/colosseum-faqs-2026-10-03.json` (h-faq-11 "required information in the submission portal", h-faq-3), `cwf/docs/official/rules.txt`, `cwf/docs/PORTAL-CHECKLIST.md`.
+## Steps for Kamal
 
-## Portal fields (from FAQ h-faq-11)
+- [ ] Grant read access to the private repo https://github.com/kamalbuilds/monday-open to **hackathon@colosseum.com** (required for private repos; not done by the agent)
+- [ ] Fill the teammate and location placeholders below
+- [ ] Upload the logo from `docs/brand/`
+- [ ] Record and upload the 2 to 3 minute presentation video and the demo video (scripts in `docs/pitch/`), then paste the links
+- [ ] Fund the faucet so new visitors can run the demo (`6jnznfgZ6CeJeq8WxdyrZXeL1ENuAihcDU5sFjtcyB11`, devnet)
+- [ ] Submit before the deadline
 
-| Field | Status | Where it is |
-|---|---|---|
-| Product name and brief description | ready | README.md first paragraph |
-| Blockchains and tools integrated | ready | Solana (devnet), Anchor 0.32, Cloudflare Pages; README "Repo" |
-| All teammates with background and previous experience | **TODO (team leader)** | not in repo |
-| Where the team is located | **TODO (team leader)** | not in repo |
-| Product logo or graphic | **TODO**: no MONDAY OPEN logo file exists yet; the UI's gold dot + wordmark could be exported | ui/ header |
-| GitHub repo link | ready, private: https://github.com/kamalbuilds/monday-open | **TODO: grant read access to hackathon@colosseum.com** (required for private repos) |
-| 2 to 3 minute presentation video | script ready, **video TODO** (record spoken pitch) | docs/pitch/pitch-2min.md |
-| Product demo video, 3 minutes or less | **draft recorded**: docs/pitch/demo.mp4 (2:05, screen only, no voiceover). Re-record with voiceover and live chart after SOL lands | docs/pitch/demo-3min.md |
-| Go-to-market, demand validation, distribution | partial: business model in UI + pitch; evidence posts in README. **TODO: write GTM/distribution paragraph** | README, docs/pitch |
+## Portal field drafts
 
-## Also in our own playbook (not stated as required in the official docs; unverified as portal fields)
+### Product name
+MONDAY OPEN
 
-- Built-before vs built-during disclosure: README "Built before vs built during" (SEALED CALL's submission used a "Pre-existing work disclosure" section; whether the portal has a field for it is **unverified**).
-- Competition paragraph: README "How we differ from Afterhours". **Unverified** whether the portal has a dedicated competition field (`sol/docs/SUBMISSION.md` pastes into "Portal: competition", "whyNow", "traction" from an earlier coordinator pass).
-- Live demo URL: https://monday-open.pages.dev (needs devnet SOL in the faucet to work for new visitors).
-- Track: Solana. Note `cwf/sol/docs/SUBMISSION.md` is for SEALED CALL; one team can submit only one project, so MONDAY OPEN needs its own team or replaces SEALED CALL. **Kamal to decide.**
+### Brief description
+A sealed weekend batch auction on Solana that gives tokenized stocks one fair Monday-open price. Traders seal orders all weekend, every order is revealed before the open, and the program clears them all at one uniform price, so nobody can trade against a visible limit or race the Monday gap. Live on devnet with a one-click demo.
+
+### Blockchains and tools integrated
+Solana (devnet). Anchor 0.32 program (commit, reveal, clear, settle with a program vault for escrow). @solana/web3.js and @coral-xyz/anchor in a React + Vite frontend. Cloudflare Pages for hosting plus a Pages Function that signs a small devnet faucet drip. Playwright for end-to-end checks.
+
+### Teammates, background and previous experience
+[Name, role, background, previous projects for each teammate]
+UI design credit: kaverimeshram (https://github.com/kaverimeshram/monday).
+
+### Where the team is located
+[City, country]
+
+### Product logo or graphic
+`docs/brand/monday-open-logo-1024.png` (also 512 px PNG and SVG in `docs/brand/`). This is the UI header wordmark exported as is.
+
+### GitHub repo link
+https://github.com/kamalbuilds/monday-open (private; hackathon@colosseum.com needs read access)
+
+### Live demo
+https://monday-open.pages.dev
+
+### Presentation video (2 to 3 minutes)
+[link]. Script: `docs/pitch/pitch-2min.md`
+
+### Product demo video (3 minutes or less)
+[link]. Script: `docs/pitch/demo-3min.md`
+
+### Go-to-market, demand validation and distribution
+We will start with the weekend gap for one tokenized stock, then add more. The first users we are aiming at are holders and traders of xStocks on Solana who already trade over the weekend and lose to the Monday-morning race. The product is a contract, not a destination. Any Solana venue, wallet or xStocks distributor can call the program and show "seal your order for the Monday open" next to its normal order form, so our reach comes from the places those traders already use. We have not signed or announced any partner. Our first step is to put the open-source program and live devnet demo in front of those teams and ask them to try it with one ticker. Market makers are the other side of the book. A sealed auction with one clearing price lets them quote without being picked off, and that is our pitch to them. Revenue is planned as a small basis-point fee on shares that clear at the open, shared with the integrating venue. Demand signals so far are public posts: the Solana Foundation asking builders for new equities products, and Julian Ma's post on batch auctions for tokenized equities. We have no user traction yet beyond the devnet demo.
+
+### Pre-existing work disclosure (paste if the portal asks)
+Built before the hackathon: research notes (signals, rival scan, the weekend-drift estimate, the two evidence posts) and shared tooling (Anchor, the Solana CLI, the design gate script, Playwright). Built during the hackathon (Oct 10 to 11, 2026): the Anchor program and tests, the devnet deploy, the faucet function, the seed script, the wiring of kaverimeshram's UI design to the program, the live chart, the README and the pitch.
+
+### Competition (paste if the portal asks)
+Afterhours, also in the fair, forecasts reopening downside for 24/7 tokenized equities and gives lending curators a hold or reduce decision. It hedges the risk of the weekend gap. MONDAY OPEN fixes the price itself with one fair sealed clearing price at the open. The two fit together, because a fair open price is a better input for any risk tool.
 
 ## Final checks before submitting
 
-- [ ] Faucet funded; a fresh browser completes one demo run (first write under 15 s)
-- [ ] `cargo test` + `anchor test --skip-build` green; program id BK1xCrXCRS3PaayeD93T69YCaAEkWQXaW1sYCzseCusA in README
+- [ ] A fresh browser completes one demo run on the live site (first write under 15 s)
+- [ ] `cargo test` and `anchor test --skip-build` are green, and the program id BK1xCrXCRS3PaayeD93T69YCaAEkWQXaW1sYCzseCusA is in the README
 - [ ] hackathon@colosseum.com has repo access
-- [ ] Both videos uploaded and links pasted
-- [ ] Team leader clicks submit before Tue Oct 13 12:29 PM IST
+- [ ] Both video links are pasted
