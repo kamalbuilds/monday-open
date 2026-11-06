@@ -38,7 +38,7 @@ const desks = Array.from({ length: DESKS }, (_, i) => {
   if (!fs.existsSync(p)) fs.writeFileSync(p, JSON.stringify([...Keypair.generate().secretKey]));
   return load(p);
 });
-async function topUp(min = 0.015, amt = 0.02) {
+async function topUp(min = arg("topmin", 0.015), amt = arg("topup", 0.02)) {
   for (const d of desks) {
     const bal = await conn.getBalance(d.publicKey);
     if (bal < min * LAMPORTS_PER_SOL) {
@@ -78,7 +78,7 @@ async function round(n) {
   orders = desks.map((kp, i) => {
     const side = i % 2; // alternate buy/sell desks, plus random spread
     const price = Math.round(mid * (1 + ((side ? -1 : 1) * Math.random() * 80 - (side ? -20 : 20)) / 10000));
-    return { kp, desk: i, side, price, qty: 1 + Math.floor(Math.random() * 2), salt: randomBytes(32) };
+    return { kp, desk: i, side, price, qty: 1 + Math.floor(Math.random() * arg("maxqty", 2)), salt: randomBytes(32) };
   });
   fs.writeFileSync(STATE, JSON.stringify({ id: id.toString(), auction: auction.toBase58(), commitEnd, revealEnd, round: n,
     orders: orders.map(({ kp, salt, ...o }) => ({ ...o, salt: salt.toString("hex") })) }, null, 1));

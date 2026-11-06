@@ -45,7 +45,7 @@ function Header() {
   return <header className="topbar">
     <div className="brand"><span className="brand-dot" /> <span>MONDAY OPEN</span></div>
     <div className="network"><span className="online-dot" /> Devnet <ChevronDown size={14} /></div>
-    <button className="icon-button" aria-label="Open menu"><Menu size={23} /></button>
+    <button className="icon-button" aria-label="Jump to judge instructions" onClick={() => document.getElementById("judges")?.scrollIntoView({ behavior: "smooth" })}><Menu size={23} /></button>
     <div className="chainline">Solana devnet <span>·</span> Program <a href={explorer("address", pid.toBase58())} target="_blank" rel="noopener">{short(pid.toBase58())}</a></div>
   </header>;
 }
@@ -57,14 +57,14 @@ function PriceChart() {
   const [prints, setPrints] = useState([]);
   useEffect(() => { openPrints().then(setPrints).catch(() => {}); const t = setInterval(() => openPrints().then(setPrints).catch(() => {}), 60000); return () => clearInterval(t); }, []);
   const live = prints.length >= 2;
-  let points = chartPoints, last = [442, 49], ylabels = ["260", "250", "240"], xlabels = ["Mon", "Tue", "Wed", "Thu", "Fri"], fri = null;
+  let points = chartPoints, last = [442, 49], ylabels = ["$390", "$382.50", "$375"], xlabels = ["Mon", "Tue", "Wed", "Thu", "Fri"], fri = null;
   if (live) {
     const vals = [...prints.map((p) => p.px), FRI];
     const lo = Math.min(...vals) * 0.998, hi = Math.max(...vals) * 1.002;
     const X = (i) => Math.round((i / (prints.length - 1)) * 442), Y = (v) => Math.round(100 - ((v - lo) / (hi - lo)) * 96 - 2);
     points = prints.map((p, i) => `${X(i)},${Y(p.px)}`).join(" ");
     last = [X(prints.length - 1), Y(prints[prints.length - 1].px)];
-    ylabels = [hi, (hi + lo) / 2, lo].map((v) => (v / 10).toFixed(0));
+    ylabels = [hi, (hi + lo) / 2, lo].map((v) => "$" + (v / 10).toFixed(2));
     const fmt = (t) => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     xlabels = [0, 1, 2, 3, 4].map((k) => fmt(prints[Math.round((k / 4) * (prints.length - 1))].t));
     fri = Y(FRI);
@@ -79,6 +79,7 @@ function PriceChart() {
       <circle cx={last[0]} cy={last[1]} r="4.5" fill="#f6f0df" stroke="#00d6a0" strokeWidth="2"/>
     </svg>
     <div className="chart-days">{xlabels.map((l, i) => <span key={i}>{l}</span>)}</div>
+    <small className="demo-note">{live ? `Live: last ${prints.length} seeded devnet open prints; dashed line = Fri close ${usd(FRI)}` : "Illustrative until live prints: shape only, scaled around the Fri close"}</small>
   </div>;
 }
 
@@ -91,13 +92,13 @@ function AssetPanel() {
         <div className="asset-logo" aria-hidden="true">T</div>
         <div><h2>TSLAx</h2><p>Tesla (tokenized)</p></div>
       </div>
-      <div className="close-price"><span>Fri Close</span><strong>{usd(FRI)}</strong><small>{res ? `${res.bps >= 0 ? "+" : ""}${res.bps} bps at your open` : "weekend drift ±385 bps"}</small></div>
+      <div className="close-price"><span>Fri Close</span><strong>{usd(FRI)}</strong><small>{res ? `${res.bps >= 0 ? "+" : ""}${res.bps} bps at your open` : "weekend drift ~±385 bps (team research note)"}</small></div>
     </div>
     <PriceChart />
     <div className="stats-row">
       <div><strong>{book ? book.orders : "…"}</strong><span>sealed orders</span></div>
-      <div><strong>{book ? book.rounds : "…"}</strong><span>weekends run</span></div>
-      <div><strong>{book?.lastPrint ? usd(book.lastPrint) : "pending"}</strong><span>last open print <CircleHelp size={13} /></span></div>
+      <div><strong>{book ? book.rounds : "…"}</strong><span>seeded auctions</span></div>
+      <div><strong>{book?.lastPrint ? usd(book.lastPrint) : "pending"}</strong><span title="Clearing price of the latest seeded devnet round (scripts/seed.mjs)">last open print <CircleHelp size={13} /></span></div>
     </div>
   </section>;
 }
@@ -106,8 +107,8 @@ function AuctionStatus() {
   const { book, now } = useContext(Demo);
   const sealing = book && now < book.commitEnd, revealing = book && !sealing && now < book.revealEnd;
   return <section className="auction-status panel">
-    <div className="status-label"><span className="gold-dot" /><span>{!book ? "Loading auction" : sealing ? "Auction open" : revealing ? "Revealing" : "Open printed"} <em>(rolling weekend)</em></span></div>
-    <div className="reveal-time"><span>{sealing ? "Reveals in" : revealing ? "Opens in" : "Next weekend"}</span><strong>{!book ? "…" : sealing ? dur(book.commitEnd - now) : revealing ? dur(book.revealEnd - now) : "soon"}</strong></div>
+    <div className="status-label"><span className="gold-dot" /><span>{!book ? "Loading auction" : sealing ? "Auction open" : revealing ? "Revealing" : (book.cleared ? "Open printed" : "Seeder paused")} <em>(rolling weekend)</em></span></div>
+    <div className="reveal-time"><span>{sealing ? "Reveals in" : revealing ? "Opens in" : "Next weekend"}</span><strong>{!book ? "…" : sealing ? dur(book.commitEnd - now) : revealing ? dur(book.revealEnd - now) : book.cleared ? "soon" : "-"}</strong></div>
   </section>;
 }
 
@@ -118,6 +119,7 @@ function OrderTicket() {
   const [shares, setShares] = useState(1);
   const notice = run.msg || (bal === null ? "Preparing a devnet burner wallet..." : `Burner ${short(kp.publicKey.toBase58())} · ${bal.toFixed(3)} devnet SOL`);
   const total = Math.max(0, Number(price) || 0) * shares;
+  const escrowSol = side === "Buy" ? Math.round(Math.max(0, Number(price) || 0) * 10) * shares * 1000 / 1e9 : 0.000001;
   void money;
 
   const changeShares = (delta) => setShares(n => Math.max(1, Math.min(3, n + delta)));
@@ -127,14 +129,14 @@ function OrderTicket() {
     <div className="side-switch" role="tablist" aria-label="Order side">
       {["Buy", "Sell"].map(s => <button key={s} className={side === s ? "selected" : ""} onClick={() => setSide(s)} role="tab" aria-selected={side === s}>{s}</button>)}
     </div>
-    <label className="field-label" htmlFor="limit-price">Limit price (USD) <CircleHelp size={13}/></label>
+    <label className="field-label" htmlFor="limit-price" title="On devnet 1 tick = $0.10 = 1000 lamports per share">Limit price (USD) <CircleHelp size={13}/></label>
     <div className="number-field"><input id="limit-price" type="number" min="0.01" step="0.1" value={price} onChange={e => setPrice(e.target.value)} /><div className="stepper"><button onClick={() => setPrice((Math.max(0, (Number(price)||0)-0.1)).toFixed(2))} aria-label="Decrease price">−</button><button onClick={() => setPrice(((Number(price)||0)+0.1).toFixed(2))} aria-label="Increase price">+</button></div></div>
     <label className="field-label" htmlFor="shares">Shares</label>
     <div className="number-field"><input id="shares" type="number" min="1" max="3" value={shares} onChange={e => setShares(Math.max(1, Math.min(3, Number(e.target.value)||1)))}/><div className="stepper"><button onClick={() => changeShares(-1)} aria-label="Decrease shares">−</button><button onClick={() => changeShares(1)} aria-label="Increase shares">+</button></div></div>
     <div className="cost-summary">
       <div><span>Estimated order value</span><strong>${total.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></div>
-      <div><span>Network fee (est.) <CircleHelp size={12}/></span><span>~0.00002 SOL</span></div>
-      <div><b>Total (escrowed)</b><b>${total.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
+      <div><span title="5 transactions plus rent for the demo auction and 4 order accounts, which are not closed yet">Fees + rent (est.) <CircleHelp size={12}/></span><span>~0.012 SOL</span></div>
+      <div><b>Escrowed (devnet SOL)</b><b>{escrowSol.toFixed(6)} SOL</b></div>
     </div>
     <button className="primary-cta" onClick={submit} disabled={run.busy}><LockKeyhole size={16}/>{run.busy ? "Running the weekend..." : side === "Buy" ? "Seal order and run to the open" : "Seal sell order for the open"}</button>
     <button className="funding-note" onClick={() => run.sig ? window.open(explorer("tx", run.sig), "_blank") : fundNow()}>
@@ -187,7 +189,7 @@ function MarketStats() {
   const res = run.result;
   const shares = run.rows.reduce((t, o) => t + o.qty, 0);
   return <section className="content-section">
-    <h2 className="section-title">Your open print <span>(demo weekend)</span> <CircleHelp size={14}/></h2>
+    <h2 className="section-title" title="Filled by your one-click run: your order plus 3 seeded orders, all from your burner">Your open print <span>(demo weekend)</span> <CircleHelp size={14}/></h2>
     <div className="market-stats panel">
       <div><strong>{run.rows.length || "-"}</strong><span>sealed orders</span></div><div><strong>{shares || "-"}</strong><span>shares total</span></div><div><strong>{res?.m ? usd(res.px) : "-"}</strong><span>clearing price</span></div><div><strong>{res ? `${res.bps >= 0 ? "+" : ""}${res.bps} bps` : "-"}</strong><span>vs Friday close</span></div>
     </div>
@@ -222,7 +224,7 @@ function App() {
       <div className="left-column">
         <div className="eyebrow">WEEKEND BATCH AUCTION · TSLAx</div>
         <h1>Stocks close Friday.<br/>Tokens trade all weekend.<br/><span>Monday gets one fair price.</span></h1>
-        <p className="intro">xStocks drift about <strong>±385 bps</strong> while the underlying market sleeps. MONDAY OPEN collects sealed orders over the weekend and clears them all at a single uniform price at the open. Nobody sees your limit until it's too late to trade against it.</p>
+        <p className="intro">xStocks drift about <strong>±385 bps</strong> while the underlying market sleeps (team research note, Oct 2026). MONDAY OPEN collects sealed orders over the weekend and clears them all at a single uniform price at the open. Nobody sees your limit until it's too late to trade against it.</p>
         <AssetPanel />
         <AuctionStatus />
         <OrderTicket />
@@ -233,22 +235,22 @@ function App() {
         <MarketStats />
         <Explanations />
         <section className="content-section">
-          <h2 className="gold-heading">For judges</h2>
+          <h2 className="gold-heading" id="judges">For judges</h2>
           <div className="phase-card panel">
             <div className="phase-heading"><span className="gold-dot"/><strong>Try it in 20 seconds</strong><span className="live-pill">DEVNET</span></div>
-            <p>1. Leave the ticket as is, or set your own limit and shares. 2. Press "Seal order and run to the open". A burner wallet is funded for you; no wallet needed. 3. Watch the timeline go Seal, Reveal, Clear, Settle on devnet, then read your open print and your weekend book. Each step is a real transaction; open it in the explorer from the ticket note.</p>
+            <p>1. Leave the ticket as is, or set your own limit and shares (1 to 3).<br/>2. Press "Seal order and run to the open". A burner wallet is funded for you; no wallet needed.<br/>3. Watch the timeline go Seal, Reveal, Clear, Settle on devnet, then read your open print and your weekend book. Each step is a real transaction; open it in the explorer from the ticket note.</p>
           </div>
         </section>
         <section className="content-section">
           <h2 className="gold-heading">Business model</h2>
           <div className="phase-card panel">
-            <p>MONDAY OPEN charges a small fee in basis points on the notional of every share that clears at the open, paid by both sides. Issuers and venues that list tokenized stocks (xStocks distributors, Solana DEXs and wallets) integrate the auction so their users get a fair Monday price instead of a weekend gap, and can share the fee. Market makers pay nothing to quote but must post escrow, which keeps the book honest.</p>
+            <p>Planned, not yet in the devnet program: MONDAY OPEN would charge a small fee in basis points on the notional of every share that clears at the open, paid by both sides. Issuers and venues that list tokenized stocks (xStocks distributors, Solana DEXs and wallets) integrate the auction so their users get a fair Monday price instead of a weekend gap, and could share the fee. Every order already posts escrow on devnet, which keeps the book honest.</p>
           </div>
         </section>
         <div className="devnet-card panel"><Wallet size={21}/><div><strong>Need devnet SOL?</strong><span>Fund a burner wallet to place orders.</span></div><DevnetButton /></div>
       </div>
     </main>
-    <footer>MONDAY OPEN <span>·</span> Sealed weekend batch auction <span className="demo-note">DEVNET · price chart is illustrative · UI design by kaverimeshram</span></footer>
+    <footer>MONDAY OPEN <span>·</span> Sealed weekend batch auction <span className="demo-note">DEVNET · chart is illustrative until live prints · UI design by kaverimeshram</span></footer>
   </div></Demo.Provider>;
 }
 

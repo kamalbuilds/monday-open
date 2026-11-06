@@ -1,21 +1,21 @@
 # MONDAY OPEN: 2-minute pitch
 
-(About 340 words. Speak briskly.)
+About 300 words. Speak at an easy pace.
 
-**The problem (0:00 to 0:30)**
-Tokenized stocks like xStocks trade on Solana around the clock. The real stock market does not. From Friday's close to Monday's open, the token keeps trading on thin books with no underlying price to anchor it. We measured the result: about 385 basis points of drift, up or down, over a weekend. Then Monday comes, and whoever is awake first, usually a bot, takes the gap from everyone else.
+**The problem (0:00 to 0:25)**
+Tokenized stocks trade on Solana around the clock. The stock market doesn't. On Friday afternoon the market closes, but the token keeps trading all weekend on thin books with nothing to anchor it. Our research notes put the weekend move at about 385 basis points, up or down. Then Monday morning arrives, and the fastest trader, usually a bot, takes that gap from everyone whose order was sitting in plain sight.
 
-**The idea (0:30 to 1:00)**
-MONDAY OPEN replaces that scramble with one fair price. All weekend, traders place sealed orders. Only a hash and an escrow deposit go on-chain, so nobody can see your limit. When the weekend ends, every order is revealed. At the open, the program picks one clearing price, the price that crosses the most shares, and every filled order pays that same price. The rest is refunded.
+**The idea (0:25 to 0:55)**
+MONDAY OPEN swaps that scramble for one fair price. All weekend, you place a sealed order. Only a fingerprint of your order and your deposit go on-chain, so nobody can see your limit. Before the open, everyone reveals. At the open, the program picks the single price that matches the most shares. Every filled order pays that same price, and anything left over is refunded.
 
-**It works today (1:00 to 1:30)**
-This is a real Anchor program on Solana devnet, with tests. Commit, reveal, clear and settle are all on-chain instructions, and escrow sits in a program vault until settlement. On our site, one click runs a full compressed weekend in about 20 seconds: your order is sealed within about 2 seconds, then revealed, cleared and settled, with every step visible in the explorer.
+**It works today (0:55 to 1:25)**
+This is a real program on Solana devnet, with passing tests. Seal, reveal, clear and settle are all on-chain steps, and deposits sit in a program vault until settlement. On our site you press one button. Your order is sealed on-chain in about two seconds, and a full compressed weekend settles in about twenty. A seeded market keeps running, and the chart shows its real opening prints against Friday's close.
 
-**Why this, not risk tools (1:30 to 1:40)**
-Others in this fair attack the same weekend gap from the risk side. Afterhours, for example, forecasts reopening downside for Robinhood Stock Tokens and gives lending curators a hold or reduce decision. That hedges the gap. We remove it at the source: one fair sealed clearing price at the open, so there is less gap left to hedge.
+**Why this matters (1:25 to 1:40)**
+Other teams treat the weekend gap as a risk to hedge. Afterhours, for example, forecasts reopening losses for lenders. We fix the price itself, so there is less gap left to hedge. A fair open price also makes every risk tool better.
 
 **The business (1:40 to 1:50)**
-We charge a small fee in basis points on every share that clears at the open. Venues and wallets that list tokenized stocks integrate the auction so their users get a fair Monday price, and they can share the fee.
+Our plan is a small fee on every share that clears at the open. Venues and wallets that list tokenized stocks plug in the auction and share that fee.
 
 **The ask (1:50 to 2:00)**
-Solana is becoming the home of tokenized stocks. MONDAY OPEN gives them a fair open. We'd like your support to take it to mainnet.
+Solana is becoming the home of tokenized stocks. MONDAY OPEN gives them a fair Monday. Help us take it to mainnet.
