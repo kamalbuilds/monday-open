@@ -2,7 +2,7 @@
 
 Brief: "Tell us what you're building, and tell us why you're the people to build it."
 Spoken by Kamal, first person. About 255 spoken words, roughly 1 minute 50 seconds at a calm pace.
-Placeholders are in [BRACKETS]; confirm or cut them before recording.
+No personal claims; every fact in "Why us" is footnoted to a file in the repo.
 
 ---
 
@@ -14,6 +14,10 @@ MONDAY OPEN fixes the price itself. Over the weekend you place a sealed order. T
 
 It works today on devnet. You can open the site, press one button, and watch a sealed order go through seal, reveal, clear and settle in about 20 seconds, with every transaction on the explorer.
 
-Why me? I've been shipping at hackathons for years, [CONFIRM: 45+ hackathons, from my notes], and I build Ava, [CONFIRM: an AI agent that runs DeFi strategies]. I care about one thing in markets: the person without the fastest bot should still get a fair price. Batch auctions are how traditional exchanges already open. I'm bringing that to Solana.
+Why us? Two things you can check. First, we tested the idea before building it: in our offline replay of real weekend trading across five tokenized stocks, a sealed batch auction landed 73.2 basis points from the Monday open, against 123.3 for the fills traders actually got on the DEX.[^1] Second, it already runs: the Anchor program is live on devnet, its end-to-end test passes, and the site seals a real order on chain with one press.[^2]
 
 Thanks for listening.
+
+---
+[^1]: `ethereum/projects/sunday-clear/DEPLOYMENT.md` line 10 and `README.md` line 44: "Harness offline replay (5 stocks, $3.75M): auction 73.2 vs DEX 123.3 bps." Caveat from the same file: a hindsight DEX VWAP scored 54.3 bps, but no trader could actually get that price.
+[^2]: `sol/projects/monday-open/README.md` line 30 (`anchor test --skip-build`: 1 passing: create, seal, bad reveal rejected, reveal, clear at one price, settle with exact payouts, double settle rejected). Devnet program `BK1x...CusA` linked in the site footer.
