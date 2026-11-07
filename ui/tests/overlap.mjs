@@ -38,6 +38,16 @@ for (const w of [1440, 768, 390]) {
         const ix = Math.min(a.right, c.right) - Math.max(a.left, c.left), iy = Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top);
         if (ix > 2 && iy > 3) out.push(`"${runs[i].t}" x "${runs[j].t}" (${Math.round(ix)}x${Math.round(iy)}px)`);
       }
+      // fixed/sticky layers: text from outside the layer that sits under a see-through layer is flagged
+      for (const e of document.querySelectorAll("body *")) {
+        const s = getComputedStyle(e); if (s.position !== "fixed" && s.position !== "sticky") continue;
+        const c = e.getBoundingClientRect(); if (c.width < 2 || c.height < 2 || !vis(e)) continue;
+        const m = s.backgroundColor.match(/[\d.]+/g) || []; const alpha = m.length === 4 ? +m[3] : (s.backgroundColor === "transparent" ? 0 : 1);
+        if (alpha >= 0.95 && s.backgroundImage === "none" || s.backdropFilter.includes("blur") && alpha >= 0.6) continue;
+        for (const r of runs) { if (e.contains(r.el)) continue; const a = r.q;
+          const ix = Math.min(a.right, c.right) - Math.max(a.left, c.left), iy = Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top);
+          if (ix > 2 && iy > 3) out.push(`"${r.t}" under see-through ${s.position} <${e.tagName.toLowerCase()}.${e.className}> (${Math.round(ix)}x${Math.round(iy)}px)`); }
+      }
       return out;
     });
     for (const h of hits) { const k = `${w} ${h.replace(/\(.*\)/, "")}`; if (!seen.has(k)) { seen.add(k); bad++; console.log(`OVERLAP ${w}px @y=${y}: ${h}`); } }
