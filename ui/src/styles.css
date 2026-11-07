@@ -379,3 +379,8 @@ html, body { overflow-x: hidden; }
 @media (max-width: 760px) { .h-sub::before { content: none; }
   .tbl th:nth-child(1), .tbl td:nth-child(1) { display: table-cell; }
   .tbl th:nth-child(6), .tbl td:nth-child(6) { display: none; } }
+
+/* r22 fixes */
+.cross { border: 0; padding: 0; background: none; }
+.cross-k span { white-space: nowrap; }
+@media (max-width: 760px) { .tbl th:nth-child(6), .tbl td:nth-child(6) { display: table-cell; } .tbl th:nth-child(5), .tbl td:nth-child(5) { display: none; } }
