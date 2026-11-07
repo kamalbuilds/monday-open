@@ -4,7 +4,7 @@ Site: https://monday-open.pages.dev (Solana devnet). No wallet needed: the page 
 
 | Time | What you show | What you say |
 |---|---|---|
-| 0:00 to 0:20 | Top of the page: headline, TSLAx panel, Friday close $382.50 | "Stocks close Friday. Their tokens trade all weekend and drift about 385 basis points. MONDAY OPEN gives Monday one fair price." |
+| 0:00 to 0:20 | Top of the page: headline, TSLAx panel, Friday close $382.50 | "Stocks close Friday. Their tokens trade all weekend, and TSLA has opened Monday a median 135 basis points from Friday's close. MONDAY OPEN gives Monday one fair price." |
 | 0:20 to 0:40 | Auction status and the "How it works" timeline | "All weekend, orders are sealed. At the end they're revealed, cleared at one price, and settled. Four steps, all on-chain." |
 | 0:40 to 1:00 | Order ticket: choose Sell, set a limit, 1 share | "I'll place a sealed sell order. Only a hash and my escrow go on-chain. Nobody can see my price." |
 | 1:00 to 1:05 | Press "Seal sell order for the open" | "One click runs a compressed weekend on devnet." |

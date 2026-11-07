@@ -16,3 +16,4 @@ seed.log
 mitm_mcp_traffic.db
 ui/dist/
 ui/.wrangler/
+.progress/

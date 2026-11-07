@@ -3,7 +3,7 @@
 About 300 words. Speak at an easy pace.
 
 **The problem (0:00 to 0:25)**
-Tokenized stocks trade on Solana around the clock. The stock market doesn't. On Friday afternoon the market closes, but the token keeps trading all weekend on thin books with nothing to anchor it. Our research notes put the weekend move at about 385 basis points, up or down. Then Monday morning arrives, and the fastest trader, usually a bot, takes that gap from everyone whose order was sitting in plain sight.
+Tokenized stocks trade on Solana around the clock. The stock market doesn't. On Friday afternoon the market closes, but the token keeps trading all weekend on thin books with nothing to anchor it. Across 136 weekends TSLA has opened Monday a median 135 basis points from Friday's close, 377 at the 90th percentile. Then Monday morning arrives, and the fastest trader, usually a bot, takes that gap from everyone whose order was sitting in plain sight.
 
 **The idea (0:25 to 0:55)**
 MONDAY OPEN swaps that scramble for one fair price. All weekend, you place a sealed order. Only a fingerprint of your order and your deposit go on-chain, so nobody can see your limit. Before the open, everyone reveals. At the open, the program picks the single price that matches the most shares. Every filled order pays that same price, and anything left over is refunded.
