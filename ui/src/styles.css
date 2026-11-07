@@ -384,3 +384,9 @@ html, body { overflow-x: hidden; }
 .cross { border: 0; padding: 0; background: none; }
 .cross-k span { white-space: nowrap; }
 @media (max-width: 760px) { .tbl th:nth-child(6), .tbl td:nth-child(6) { display: table-cell; } .tbl th:nth-child(5), .tbl td:nth-child(5) { display: none; } }
+
+/* r23 fixes */
+.kv-note { margin: var(--s1) 0 0; font-size: var(--t-12); color: var(--ink-3); }
+.seg-l { font-family: var(--sans); font-weight: 500; }
+.cross > svg { max-height: 220px; }
+@media (max-width: 760px) { .tbl th:nth-child(5), .tbl td:nth-child(5) { display: table-cell; } .tbl th:nth-child(6), .tbl td:nth-child(6) { display: none; } }

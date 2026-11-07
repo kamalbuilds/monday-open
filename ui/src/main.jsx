@@ -81,7 +81,7 @@ function Ticker() {
     <div className="tick tick-hero"><span className="lbl">Last uniform print</span><span className="val mono">{last ? usd(last) : "-"}</span>{last ? <Chip k={last >= FRI ? "bid" : "ask"}>{bpsTxt(bps(last))}</Chip> : <span className="sub">seeded round</span>}</div>
     <div className="tick"><span className="lbl">Open gap, max</span><span className="val mono">{gaps.length ? (() => { const g = prints.map((p) => bps(p.px)).reduce((a, b) => Math.abs(b) > Math.abs(a) ? b : a, 0); return bpsTxt(g); })() : "-"}</span><span className="sub">largest move vs Friday, {prints.length} prints</span></div>
     <div className="tick"><span className="lbl">Shares crossed</span><span className="val mono">{prints.reduce((t, p) => t + p.q, 0)}</span><span className="sub">total, all seeded rounds</span></div>
-    <div className="tick"><span className="lbl">Seeded auctions</span><span className="val mono">{book ? book.rounds : "-"}</span><span className="sub">{prints.length} with a clearing print · <Chip k={w.k}>{w.left !== null ? `${w.label} ${mmss(w.left)}` : w.label}</Chip></span></div>
+    <div className="tick"><span className="lbl">Auctions cleared</span><span className="val mono">{prints.length}</span><span className="sub">by the devnet seeder · <Chip k={w.k}>{w.left !== null ? `${w.label} ${mmss(w.left)}` : w.label}</Chip></span></div>
   </section>;
 }
 
@@ -112,9 +112,10 @@ function OrderEntry() {
       <div><dt>Notional</dt><dd className="mono">${(p * qty).toFixed(2)}</dd></div>
       <div><dt title="Devnet scale: $1 of notional escrows 0.00001 SOL">Escrow on devnet</dt><dd className="mono">{lock.toFixed(6)} SOL</dd></div>
       <div><dt title="Five transactions plus rent for one auction and four order accounts (not reclaimed yet)">Fees and rent, est.</dt><dd className="mono">≈0.012 SOL</dd></div>
+      <p className="kv-note">Devnet escrow is scaled: $1 of notional locks 0.00001 SOL.</p>
     </dl>
     <p className="conseq">{side === "Buy" ? <>If Monday clears at or below <b className="mono">{usd(Math.round(p * 10))}</b>, you buy up to <b className="mono">{qty}</b> share{qty > 1 ? "s" : ""} at the single clearing price, never above your limit. Your limit is <b className={vs >= 0 ? "up-t" : "dn-t"}>{bpsTxt(vs)}</b> vs Friday close.</> : <>If Monday clears at or above <b className="mono">{usd(Math.round(p * 10))}</b>, you sell up to <b className="mono">{qty}</b> share{qty > 1 ? "s" : ""} at the single clearing price, never below your limit. Your limit is <b className={vs >= 0 ? "up-t" : "dn-t"}>{bpsTxt(vs)}</b> vs Friday close.</>}</p>
-    <p className="entry-msg" aria-live="polite">{run.msg || "One press tops up the burner wallet from the faucet if needed, seals your order next to three seeded orders, then reveals, clears and settles them on devnet."}</p>
+    <p className="entry-msg" aria-live="polite">{run.msg || "Seals next to three seeded orders, then reveals, clears and settles on devnet. Faucet tops up the burner if needed."}</p>
   </section>;
 }
 
@@ -158,19 +159,20 @@ function Cross() {
   if (!last) return <section className="tile card cross-tile"><header className="tile-h"><h2>Where bids met asks</h2></header><div className="cross-empty">Reading the last seeded auction…</div></section>;
   const os = last.orders.filter((o) => o.revealed);
   const bids = os.filter((o) => o.side === 0).sort((a, b) => b.price - a.price), asks = os.filter((o) => o.side === 1).sort((a, b) => a.price - b.price);
-  const prices = os.map((o) => o.price).concat(last.px), lo = Math.min(...prices) - 10, hi = Math.max(...prices) + 10;
+  const prices = os.map((o) => o.price).concat(last.px), lo = Math.floor((Math.min(...prices) - 5) / 10) * 10, hi = Math.ceil((Math.max(...prices) + 5) / 10) * 10;
   const tq = Math.max(bids.reduce((t, o) => t + o.qty, 0), asks.reduce((t, o) => t + o.qty, 0), 1);
   const narrow = useNarrow();
-  const W = narrow ? 340 : 600, H = 150, X = (q) => 70 + (q / (tq * 1.25)) * (W - 100), Y = (v) => H - 16 - ((v - lo) / (hi - lo)) * (H - 32);
+  const W = narrow ? 340 : 600, H = narrow ? 170 : 200, X = (q) => 70 + (q / (tq * 1.25)) * (W - 100), Y = (v) => H - 16 - ((v - lo) / (hi - lo)) * (H - 32);
   const steps = (arr, end) => { let q = 0, d = `M ${X(0)} ${Y(arr[0]?.price ?? last.px)}`; for (const o of arr) { d += ` V ${Y(o.price)}`; q += o.qty; d += ` H ${X(q)}`; } return d + ` V ${Y(end)}`; };
   const mq = last.q;
-  return <section className="tile card cross-tile" aria-label="Where bids met asks"><header className="tile-h"><h2>Where bids met asks <span className="h-sub">last seeded auction #{last.n}</span></h2><Hash kind="address" id={last.a} /></header><p className="cross-cap">Bids and asks cross at <b className="mono">{usd(last.px)}</b> for <b className="mono">{mq}</b> shares, so every fill in this auction printed at that one price. Across: cumulative shares. Up: limit price.</p><div className="cross">
+  return <section className="tile card cross-tile" aria-label="Where bids met asks"><header className="tile-h"><h2>Where bids met asks <span className="h-sub">last seeded auction #{last.n}</span></h2><Hash kind="address" id={last.a} /></header><p className="cross-cap">Bids and asks cross at <b className="mono">{usd(last.px)}</b> for <b className="mono">{mq}</b> shares, so every fill in this auction printed at that one price.</p><div className="cross">
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Cumulative bids and asks crossing at the clearing price">
       <line x1="70" x2={W - 20} y1={Y(last.px)} y2={Y(last.px)} className="cx-line" />
       <path d={steps(bids, lo)} className="cx-bid" /><path d={steps(asks, hi)} className="cx-ask" />
-      {Array.from({ length: tq }, (_, k) => k + 1).map((q) => <text key={q} x={X(q)} y={H - 2} textAnchor="middle" className="cx-ax">{q}</text>)}<text x="4" y={Y(last.px) + 4} className="cx-t">{usd(last.px)}</text><line x1={X(mq)} x2={X(mq)} y1="8" y2={H - 16} className="cx-q" /><circle cx={X(mq)} cy={Y(last.px)} r="5" className="cx-dot" /><text x={X(mq) + 10} y={Y(last.px) - 8} className="cx-t">{mq} @ {usd(last.px)}</text>
+      {Array.from({ length: tq }, (_, k) => k + 1).map((q) => <text key={q} x={X(q)} y={H - 2} textAnchor="middle" className="cx-ax">{q}</text>)}<text x="4" y={Y(last.px) + 4} className="cx-t">{usd(last.px)}</text><line x1={X(mq)} x2={X(mq)} y1="8" y2={H - 16} className="cx-q" /><circle cx={X(mq)} cy={Y(last.px)} r="5" className="cx-dot" />{!narrow && <text x={X(mq) + 10} y={Y(last.px) - 8} className="cx-t">{mq} @ {usd(last.px)}</text>}
             
-      {[hi, lo].map((v) => <text key={v} x="2" y={Y(v) + 4} className="cx-ax">{usd(v)}</text>)}
+      {Array.from({ length: (hi - lo) / 10 + 1 }, (_, k) => lo + k * 10).map((v) => <line key={"g" + v} x1="70" x2={W - 20} y1={Y(v)} y2={Y(v)} className="grid" />)}
+      {Array.from({ length: (hi - lo) / 10 + 1 }, (_, k) => lo + k * 10).filter((v) => Math.abs(Y(v) - Y(last.px)) > 14).map((v) => <text key={v} x="2" y={Y(v) + 4} className="cx-ax">{usd(v)}</text>)}
     </svg>
     <div className="cross-k mono"><span className="k-bid">Bids {bids.map((o) => `${o.qty} @ ${usd(o.price)}`).join(" · ")}</span><span className="k-ask">Asks {asks.map((o) => `${o.qty} @ ${usd(o.price)}`).join(" · ")}</span></div>
   </div></section>;
@@ -186,7 +188,7 @@ function Clock() {
     {res || run.busy ? <div className="clear-hero">
       <span className="lbl">{res?.m ? "Your clearing price" : "Your limit, sealed until the reveal"}</span><span className="big mono">{res?.m ? usd(res.px) : run.rows.length ? "••••" : "…"}</span>
       <span className="sub">{res ? (res.m ? <>{res.m} share{res.m > 1 ? "s" : ""} crossed · {bpsTxt(res.bps)} vs Friday · you {res.you ? `filled ${res.you}` : "were refunded"}</> : "No cross: every order refunded") : run.msg}</span>
-    </div> : <p className="clock-idle">A real weekend runs from Friday close to the Monday open. This demo compresses it to about 20 seconds; your clearing price and fill appear here after settlement.</p>}
+    </div> : <p className="clock-idle">Real weekend: Friday close to Monday open. Demo: about 20 seconds.</p>}
   </section>;
 }
 
@@ -266,7 +268,7 @@ function Method() {
         <div><dt>Reveal</dt><dd>Each trader opens their commitment. A mismatched hash or an under-funded bid is rejected by the program.</dd></div>
         <div><dt>Clear</dt><dd>The program picks the one price that crosses the most shares. Every fill, bid or ask, settles at that price.</dd></div>
         <div><dt>Settle</dt><dd>The vault pays fills, splits the heavy side pro rata and refunds everything else.</dd></div>
-        <div><dt>Why</dt><dd>Our team estimate puts the typical weekend move at about ±385 bps between Friday's close and Monday's open, on thin books with no underlying market.</dd></div>
+        <div><dt>Why</dt><dd>Tokenized stocks can move about ±385 bps between Friday's close and Monday's open (team estimate, method in the README), on thin books with no underlying market.</dd></div>
       </dl>
       <div className="spec-side">
         <div className="judge" id="judges"><h3>Try it in 20 seconds</h3><ol><li>Keep the default bid, or set a limit and size.</li><li>Press <b>Seal and run to the open</b>. No wallet extension needed.</li><li>Watch the tape fill with real devnet transactions, then read the clearing price and the blotter.</li></ol></div>
