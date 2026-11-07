@@ -8,15 +8,21 @@ skip-lint = false
 [programs.devnet]
 monday_open = "BK1xCrXCRS3PaayeD93T69YCaAEkWQXaW1sYCzseCusA"
 
-[programs.localnet]
-monday_open = "BK1xCrXCRS3PaayeD93T69YCaAEkWQXaW1sYCzseCusA"
-
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
+
+# Load the program through the upgradeable loader so init_config can check the upgrade authority.
+[test]
+startup_wait = 30000
+
+[[test.genesis]]
+address = "BK1xCrXCRS3PaayeD93T69YCaAEkWQXaW1sYCzseCusA"
+program = "target/deploy/monday_open.so"
+upgradeable = true
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
