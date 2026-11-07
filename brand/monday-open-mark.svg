@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#0d0f12"/>
+  <g transform="translate(56.82 60.21) scale(1.1295)">
+    <!-- weekend bids stepping down to the clearing point -->
+    <path d="M60 130 H170 V235 H280 V340 H400 V400" fill="none" stroke="#42be65" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- weekend asks stepping up to the clearing point -->
+    <path d="M60 670 H170 V565 H280 V460 H400 V400" fill="none" stroke="#fa4d56" stroke-width="38" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- one clearing price: a single level line leaving the cross -->
+    <path d="M400 400 H730" fill="none" stroke="#4589ff" stroke-width="38" stroke-linecap="round"/>
+    <circle cx="400" cy="400" r="46" fill="#4589ff" stroke="#4589ff" stroke-width="2"/>
+    <!-- the Monday open: a sun rising on the price line -->
+    <path d="M570 400 A80 80 0 0 1 730 400" fill="none" stroke="#f1c21b" stroke-width="38" stroke-linecap="round"/>
+    <path d="M650 290 V250 M565 325 L538 298 M735 325 L762 298" fill="none" stroke="#f1c21b" stroke-width="30" stroke-linecap="round"/>
+  </g>
+</svg>
