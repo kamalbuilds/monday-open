@@ -44,7 +44,7 @@ Demand signals: [Solana Foundation, "build something new with equities on Solana
 ## How it is built
 
 - Settlement pairs native devnet SOL with the TSLAx devnet test mint. 1 price tick ($0.10 in the UI) per share is 1000 lamports, and 1 share is 10^6 token base units.
-- The demo weekend lasts about 15 seconds, and the burner signs the 3 seeded counter-orders, so the page shows the mechanism end to end.
+- The demo weekend lasts about 30 seconds, and the burner signs the 3 seeded counter-orders, so the page shows the mechanism end to end.
 - A demo run costs about 0.012 SOL in account rent and fees, covered by the faucet drip.
 - The clear call passes every revealed order as a writable remaining account, up to 24 per auction.
 - The TSLAx mint authority is the faucet key, so the faucet function mints test tokens on request.

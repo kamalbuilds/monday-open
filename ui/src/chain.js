@@ -56,7 +56,13 @@ export const ata = getAssociatedTokenAddressSync(MINT, kp.publicKey);
 export const tokenBalance = async () => { try { return Number((await getAccount(conn, ata)).amount) / SHARE; } catch { return 0; } };
 let faucetNote = "";
 export const faucetMessage = () => faucetNote;
+const FAUCET = new PublicKey("6jnznfgZ6CeJeq8WxdyrZXeL1ENuAihcDU5sFjtcyB11");
 async function drip(body) {
+  const have = await retry(() => conn.getBalance(FAUCET));
+  if (have < 0.025 * LAMPORTS_PER_SOL) {
+    faucetNote = `Faucet is empty (${(have / LAMPORTS_PER_SOL).toFixed(4)} SOL left). Get devnet SOL at faucet.solana.com and send it to ${FAUCET.toBase58()}.`;
+    throw new Error(faucetNote);
+  }
   const { blockhash } = await conn.getLatestBlockhash();
   const r = await fetch("/api/faucet", { method: "POST", body: JSON.stringify({ to: kp.publicKey.toBase58(), blockhash, ...body }) });
   const j = await r.json().catch(() => ({}));
@@ -124,7 +130,7 @@ export async function runWeekend(side, price, qty, update) {
   const [config] = PublicKey.findProgramAddressSync([Buffer.from("config")], pid);
   const orderPda = (i) => { const b = Buffer.alloc(2); b.writeUInt16LE(i); return PublicKey.findProgramAddressSync([Buffer.from("order"), auction.toBuffer(), b], pid)[0]; };
   const now = await chainNow();
-  const commitEnd = now + 9, revealEnd = commitEnd + 6;
+  const commitEnd = now + 12, revealEnd = commitEnd + 12;
   const dep = (o) => (o.side === 0 ? o.qty * o.price * TICK : SELL_DEPOSIT);
   const sellShares = rows.reduce((t, o) => t + (o.side === 1 ? o.qty : 0), 0);
   if (!(await ensureTokens(sellShares, (m) => push({ phase: 0, msg: m })))) throw new Error(`Burner needs ${sellShares} TSLAx test tokens to escrow its sells. ${faucetNote || "Faucet could not mint them."}`);

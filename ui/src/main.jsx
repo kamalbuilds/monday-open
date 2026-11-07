@@ -147,7 +147,7 @@ function Chart() {
 }
 
 const PH = ["Seal", "Reveal", "Clear", "Settle"];
-const STEP_T = ["now", "at 9 s", "at 15 s", "by ~20 s"];
+const STEP_T = ["now", "at 12 s", "at 24 s", "by ~30 s"];
 function useNarrow() {
   const q = "(max-width: 760px)";
   const [n, setN] = useState(() => window.matchMedia(q).matches);
@@ -189,7 +189,7 @@ function Clock() {
     {res || run.busy ? <div className="clear-hero">
       <span className="lbl">{res?.m ? "Your clearing price" : "Your limit, sealed until the reveal"}</span><span className="big mono">{res?.m ? usd(res.px) : run.rows.length ? "••••" : "…"}</span>
       <span className="sub">{res ? (res.m ? <>{res.m} share{res.m > 1 ? "s" : ""} crossed · {bpsTxt(res.bps)} vs Friday · you {res.you ? `filled ${res.you}` : "were refunded"}</> : "No cross: every order refunded") : run.msg}</span>
-    </div> : <p className="clock-idle">Real weekend: Friday close to Monday open. Demo: about 20 seconds.</p>}
+    </div> : <p className="clock-idle">Real weekend: Friday close to Monday open. Demo: about 30 seconds.</p>}
   </section>;
 }
 
@@ -273,7 +273,7 @@ function Method() {
         <div><dt>Why</dt><dd>TSLA opened Monday a median 135 bps away from Friday's close across 136 weekends, 377 bps at the 90th percentile (Yahoo Finance daily bars, scripts/weekend-gap.mjs), while its tokens trade all weekend on thin books with no underlying market.</dd></div>
       </dl>
       <div className="spec-side">
-        <div className="judge" id="judges"><h3>Try it in 20 seconds</h3><ol><li>Keep the default bid, or set a limit and size.</li><li>Press <b>Seal and run to the open</b>. No wallet extension needed.</li><li>Watch the tape fill with real devnet transactions, then read the clearing price and the blotter.</li></ol></div>
+        <div className="judge" id="judges"><h3>Try it in 30 seconds</h3><ol><li>Keep the default bid, or set a limit and size.</li><li>Press <b>Seal and run to the open</b>. No wallet extension needed.</li><li>Watch the tape fill with real devnet transactions, then read the clearing price and the blotter.</li></ol></div>
         <div className="model"><h3>How it earns</h3><p>The program takes 10 basis points of every seller's proceeds at settlement and sends them to the treasury account.</p></div>
       </div>
     </div>
