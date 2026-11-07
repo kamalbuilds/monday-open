@@ -110,12 +110,11 @@ function OrderEntry() {
     </div> : <button className="btn-primary" onClick={() => setConfirm(true)} disabled={run.busy}>{run.busy ? <><Timer size={16} /> Weekend in progress…</> : <><Lock size={16} /> Seal and run to the open</>}</button>}
     <dl className="kv">
       <div><dt>Notional</dt><dd className="mono">${(p * qty).toFixed(2)}</dd></div>
-      <div><dt title="Devnet scale: $1 of notional escrows 0.00001 SOL">Escrow · $1 = 0.00001 SOL</dt><dd className="mono">{lock.toFixed(6)} SOL</dd></div>
+      <div><dt title="Devnet scale: $1 of notional escrows 0.00001 SOL">Escrow on devnet</dt><dd className="mono">{lock.toFixed(6)} SOL</dd></div>
       <div><dt title="Five transactions plus rent for one auction and four order accounts (not reclaimed yet)">Fees and rent, est.</dt><dd className="mono">≈0.012 SOL</dd></div>
     </dl>
     <p className="conseq">{side === "Buy" ? <>If Monday clears at or below <b className="mono">{usd(Math.round(p * 10))}</b>, you buy up to <b className="mono">{qty}</b> share{qty > 1 ? "s" : ""} at the single clearing price, never above your limit. Your limit is <b className={vs >= 0 ? "up-t" : "dn-t"}>{bpsTxt(vs)}</b> vs Friday close.</> : <>If Monday clears at or above <b className="mono">{usd(Math.round(p * 10))}</b>, you sell up to <b className="mono">{qty}</b> share{qty > 1 ? "s" : ""} at the single clearing price, never below your limit. Your limit is <b className={vs >= 0 ? "up-t" : "dn-t"}>{bpsTxt(vs)}</b> vs Friday close.</>}</p>
-    <p className="entry-msg" aria-live="polite">{run.msg || "One press tops up the burner wallet from the faucet if needed, seals your order next to three seeded orders, then reveals, clears and settles them in about 20 seconds."}</p>
-    <p className="entry-alt"><a href="#wallet">Wallet and faucet</a> are in the right column.</p>
+    <p className="entry-msg" aria-live="polite">{run.msg || "One press tops up the burner wallet from the faucet if needed, seals your order next to three seeded orders, then reveals, clears and settles them on devnet."}</p>
   </section>;
 }
 
@@ -123,7 +122,7 @@ function Chart() {
   const { prints, book } = useContext(Ctx);
   const live = prints.length >= 2;
   const narrow = useNarrow();
-  const W = narrow ? 360 : 640, H = narrow ? 210 : 200, L0 = 64, R0 = W - 16, T0 = 22, B0 = H - 38;
+  const W = narrow ? 360 : 640, H = narrow ? 200 : 170, L0 = 64, R0 = W - 16, T0 = 22, B0 = H - 38;
   let body = null;
   if (live) {
     const vals = [...prints.map((p) => p.px), FRI], lo = Math.floor((Math.min(...vals) - 20) / 100) * 100, hi = Math.ceil((Math.max(...vals) + 20) / 100) * 100;
@@ -135,11 +134,11 @@ function Chart() {
     body = <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Clearing prices of seeded devnet rounds against the Friday close">
       {ticks.map((v) => <g key={v}><line x1={L0} x2={R0} y1={Y(v)} y2={Y(v)} className="grid" /><text x={L0 - 8} y={Y(v) + 4} textAnchor="end" className="cx-ax">{usd(v)}</text></g>)}
       <line x1={L0} x2={R0} y1={friY} y2={friY} className="fri" />
-      {prints.map((p, i) => { const x = X(i), y = Y(p.px), up = p.px >= FRI; return <g key={p.a}><line x1={x} x2={x} y1={friY} y2={y} className={up ? "stem up" : "stem dn"} /><rect x={x - 5} y={y - 5} width="10" height="10" className={up ? "dot up" : "dot dn"}><title>{`${fmt(p.t)} · ${usd(p.px)} · ${bpsTxt(bps(p.px))} vs Friday`}</title></rect><text x={x} y={up ? y - 10 : y + 20} textAnchor="middle" className="pt-l">{usd(p.px)}</text><text x={x} y={H - 20} textAnchor="middle" className="cx-ax"><tspan x={x}>{new Date(p.t * 1000).toLocaleDateString([], { month: "short", day: "numeric" })}</tspan><tspan x={x} dy="16">{new Date(p.t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</tspan></text></g>; })}
+      {prints.map((p, i) => { const x = X(i), y = Y(p.px), up = p.px >= FRI; return <g key={p.a}><line x1={x} x2={x} y1={friY} y2={y} className={up ? "stem up" : "stem dn"} /><rect x={x - 5} y={y - 5} width="10" height="10" className={up ? "dot up" : "dot dn"}><title>{`${fmt(p.t)} · ${usd(p.px)} · ${bpsTxt(bps(p.px))} vs Friday`}</title></rect><text x={up ? x : x + 10} y={up ? y - 10 : y + 4} textAnchor={up ? "middle" : "start"} className="pt-l">{usd(p.px)}</text><text x={x} y={H - 20} textAnchor="middle" className="cx-ax"><tspan x={x}>{new Date(p.t * 1000).toLocaleDateString([], { month: "short", day: "numeric" })}</tspan><tspan x={x} dy="16">{new Date(p.t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</tspan></text></g>; })}
     </svg>;
   }
   return <section className="tile card chart-tile" aria-label="Open prints">
-    <header className="tile-h"><h2>Uniform open prints</h2>{live ? <span className="legend mono"><i /> Friday close {usd(FRI)}</span> : <Chip k="mute">Waiting for prints</Chip>}</header>
+    <header className="tile-h"><h2>Uniform open prints <span className="h-sub">· one point per round, not to time scale</span></h2>{live ? <span className="legend mono"><i /> Friday close {usd(FRI)}</span> : <Chip k="mute">Waiting for prints</Chip>}</header>
     {live ? <div className="plot2">{body}</div> : <div className="plot-empty">No cleared seeded rounds on chain yet. Each round the seeder clears adds one point here, so nothing on this chart is simulated.</div>}
     {!live && <footer className="tile-f mono"><span>{book ? `${book.rounds} seeded auctions found` : "reading devnet…"}</span></footer>}
   </section>;
@@ -183,11 +182,11 @@ function Clock() {
   const res = run.result, cur = run.phase;
   return <section className="tile card clock" aria-label="Auction clock">
     <header className="tile-h"><h2>Your auction</h2><Chip k={run.busy ? "amber" : res ? "bid" : "mute"}>{run.busy ? "Live" : res ? "Settled" : "Waiting for your seal"}</Chip></header>
-    <div className={`track ${cur < 0 && !res && !run.busy ? "idle" : ""}`}>{PH.map((p, i) => { const done = cur === 4 || i < cur, on = i === cur && cur < 4, next = false; return <div key={p} className={`seg ${done ? "done" : ""} ${on ? "on" : ""} ${next ? "next" : ""}`}><span className="seg-bar" /><span className="seg-l mono">{p}</span><span className="seg-t mono">{STEP_T[i]}</span></div>; })}</div>
+    <div className={`track ${cur < 0 && !res && !run.busy ? "idle" : ""}`}>{PH.map((p, i) => { const done = cur === 4 || i < cur, on = i === cur && cur < 4, next = false; return <div key={p} className={`seg ${done ? "done" : ""} ${on ? "on" : ""} ${cur < 0 && !res && !run.busy && i === 0 ? "next" : ""}`}><span className="seg-bar" /><span className="seg-l mono">{p}</span><span className="seg-t mono">{STEP_T[i]}</span></div>; })}</div>
     {res || run.busy ? <div className="clear-hero">
       <span className="lbl">{res?.m ? "Your clearing price" : "Your limit, sealed until the reveal"}</span><span className="big mono">{res?.m ? usd(res.px) : run.rows.length ? "••••" : "…"}</span>
       <span className="sub">{res ? (res.m ? <>{res.m} share{res.m > 1 ? "s" : ""} crossed · {bpsTxt(res.bps)} vs Friday · you {res.you ? `filled ${res.you}` : "were refunded"}</> : "No cross: every order refunded") : run.msg}</span>
-    </div> : <p className="clock-idle">Your print lands here about 20 seconds after you seal. The chart above shows the same steps from the last seeded auction.</p>}
+    </div> : <p className="clock-idle">Your clearing price and fill appear here after settlement. The chart above shows a finished seeded auction.</p>}
   </section>;
 }
 
@@ -216,7 +215,7 @@ function Tape() {
   return <section className="tile card tape" aria-label="Event tape">
     <header className="tile-h"><h2>Tape</h2>{tape.length > 0 && <Chip k="amber">{tape.length} events</Chip>}</header>
     {tape.length === 0 && <SeedTape />}
-    {tape.length === 0 && <dl className="acct"><div><dt>Program</dt><dd><Hash kind="address" id={pid.toBase58()} /></dd></div><div><dt>Seeder</dt><dd><Hash kind="address" id="GhyXbXu7y3DVptMiSPBri12rGMxJBKtex4hWSa6bfg9j" /></dd></div><div><dt>Faucet</dt><dd><Hash kind="address" id="6jnznfgZ6CeJeq8WxdyrZXeL1ENuAihcDU5sFjtcyB11" /></dd></div><div><dt>Your run</dt><dd className="dim">streams here, one line per transaction</dd></div></dl>}
+    {tape.length === 0 && <dl className="acct"><div><dt>Program</dt><dd><Hash kind="address" id={pid.toBase58()} /></dd></div><div><dt>Seeder</dt><dd><Hash kind="address" id="GhyXbXu7y3DVptMiSPBri12rGMxJBKtex4hWSa6bfg9j" /></dd></div><div><dt>Faucet</dt><dd><Hash kind="address" id="6jnznfgZ6CeJeq8WxdyrZXeL1ENuAihcDU5sFjtcyB11" /></dd></div></dl>}
     <ol className="tape-list">
       {[...tape, ...hist].map((e) => <li key={e.id} className="tape-row"><span className="mono dim">{e.at} </span><span className="tape-msg">{e.msg}</span>{e.sig && <Hash id={e.sig} />}{e.acct && <Hash kind="address" id={e.acct} label={`auction ${short(e.acct)}`} />}</li>)}
     </ol>
@@ -267,7 +266,7 @@ function Method() {
         <div><dt>Reveal</dt><dd>Each trader opens their commitment. A mismatched hash or an under-funded bid is rejected by the program.</dd></div>
         <div><dt>Clear</dt><dd>The program picks the one price that crosses the most shares. Every fill, bid or ask, settles at that price.</dd></div>
         <div><dt>Settle</dt><dd>The vault pays fills, splits the heavy side pro rata and refunds everything else.</dd></div>
-        <div><dt>Why</dt><dd>Our team estimate, from research done before the hackathon, puts the typical move at about ±385 bps between Friday's close and Monday's open, on thin books with no underlying market.</dd></div>
+        <div><dt>Why</dt><dd>Our team estimate puts the typical weekend move at about ±385 bps between Friday's close and Monday's open, on thin books with no underlying market.</dd></div>
       </dl>
       <div className="spec-side">
         <div className="judge" id="judges"><h3>Try it in 20 seconds</h3><ol><li>Keep the default bid, or set a limit and size.</li><li>Press <b>Seal and run to the open</b>. No wallet extension needed.</li><li>Watch the tape fill with real devnet transactions, then read the clearing price and the blotter.</li></ol></div>
@@ -289,7 +288,7 @@ function App() {
     </main>
     <Blotter />
     <Method />
-    <footer className="foot mono"><span>MONDAY OPEN · sealed weekend batch auction · Solana devnet</span><Hash kind="address" id={pid.toBase58()} label={`program ${short(pid.toBase58())}`} /></footer>
+    <footer className="foot"><span>MONDAY OPEN · sealed weekend batch auction · Solana devnet</span><Hash kind="address" id={pid.toBase58()} label={`program ${short(pid.toBase58())}`} /></footer>
   </div></Ctx.Provider>;
 }
 createRoot(document.getElementById("root")).render(<App />);

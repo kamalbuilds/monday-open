@@ -44,7 +44,7 @@ Type scale: 12 labels, chips and tape · 14 body · 16 inputs · 20 tile titles 
 Primary job: place a sealed weekend order and see the fair Monday clearing price. References: Uniswap-simple order entry, Hyperliquid-style zoned price view (structure only, nothing copied).
 1. Lead with the clearing price and one primary action: the last uniform print is the 40px hero cell of the ticker; "Seal and run to the open" is the only accent-filled button.
 2. Every number shows its consequence: order entry states "If Monday clears at or below $X you buy up to N shares at the single price; your limit is Z bps vs Friday close". Prints carry bps vs Friday; the clear shows shares crossed and your fill.
-3. Semantic colour only: green = bid/filled, red = ask/below Friday, amber = live countdown. One accent (blue, primary action + clearing price) and one deliberate secondary (cyan, phase timing and annotations).
+3. Semantic colour only: green = bid/filled, red = ask/below Friday, amber = live countdown. One accent (blue #4589ff, primary action + clearing price) and one deliberate secondary (teal #3ddbd9, phase timing and annotations; was #33b1ff, too close to the accent).
 4. Plain-language confirm before sealing (inline panel: limit is hidden and final, escrow amount, refund rule). Distinct states: Waiting for your seal (mute), Live/pending (amber), Revealed (limits shown in blotter), Settled (green).
 5. Trust: program, seeder, faucet and every auction/tx linked to Solana Explorer; timestamps on every print; Devnet badge in the top bar.
 6. Charts: y-axis labels, Friday-close annotation, per-point date labels and hover titles; the cross chart marks the crossing quantity and price.
