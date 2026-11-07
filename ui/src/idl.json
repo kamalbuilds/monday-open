@@ -10,7 +10,9 @@
     {
       "name": "clear",
       "docs": [
-        "Monday open: anyone cranks with every revealed order as remaining accounts."
+        "Monday open: anyone cranks with every revealed order as writable remaining accounts.",
+        "Fixes the clearing price and writes each order's exact fill, so the heavy side's",
+        "fills sum to the matched quantity."
       ],
       "discriminator": [
         250,
@@ -189,9 +191,57 @@
           }
         },
         {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "token_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "auction"
+              }
+            ]
+          }
+        },
+        {
           "name": "authority",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "system_program",
@@ -222,9 +272,73 @@
       ]
     },
     {
+      "name": "init_config",
+      "docs": [
+        "One-time protocol config. Only the program's upgrade authority can set it."
+      ],
+      "discriminator": [
+        23,
+        235,
+        115,
+        232,
+        168,
+        96,
+        1,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "address": "BK1xCrXCRS3PaayeD93T69YCaAEkWQXaW1sYCzseCusA"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "treasury",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "reveal_order",
       "docs": [
-        "Open the seal. side: 0 = buy, 1 = sell. price in ticks ($0.01)."
+        "Open the seal. side: 0 = buy, 1 = sell. price in ticks. A buy must be fully",
+        "funded in SOL. A sell moves `qty * TOKENS_PER_SHARE` stock tokens into escrow."
       ],
       "discriminator": [
         25,
@@ -249,11 +363,42 @@
           "writable": true
         },
         {
+          "name": "trader_ata",
+          "writable": true
+        },
+        {
+          "name": "token_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "auction"
+              }
+            ]
+          }
+        },
+        {
           "name": "trader",
           "signer": true,
           "relations": [
             "order"
           ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
@@ -283,7 +428,8 @@
     {
       "name": "settle",
       "docs": [
-        "Pay out one order: pro-rata fill on the heavy side, refund the rest."
+        "Pay out one order. Buyer: stock tokens for the fill, SOL refund of the unspent",
+        "escrow. Seller: SOL proceeds minus the fee, stock tokens refunded for the unfilled part."
       ],
       "discriminator": [
         175,
@@ -336,6 +482,41 @@
           ]
         },
         {
+          "name": "trader_ata",
+          "writable": true
+        },
+        {
+          "name": "token_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "auction"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -355,6 +536,19 @@
         233,
         131,
         81
+      ]
+    },
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
       ]
     },
     {
@@ -462,6 +656,18 @@
     {
       "code": 6018,
       "name": "AlreadySettled"
+    },
+    {
+      "code": 6019,
+      "name": "FeeTooHigh"
+    },
+    {
+      "code": 6020,
+      "name": "NotUpgradeAuthority"
+    },
+    {
+      "code": 6021,
+      "name": "OrderNotWritable"
     }
   ],
   "types": [
@@ -529,6 +735,18 @@
           {
             "name": "vault_bump",
             "type": "u8"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
           }
         ]
       }
@@ -549,6 +767,30 @@
           {
             "name": "matched",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Config",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

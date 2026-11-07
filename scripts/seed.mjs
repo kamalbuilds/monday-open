@@ -1,10 +1,12 @@
 // Rolling seeded market: several desk wallets keep a TSLAx weekend auction alive on devnet.
 // Each round: create auction -> every desk commits sealed orders -> reveal -> clear -> settle -> next round.
 // Usage: node scripts/seed.mjs [--rounds N] [--commit 300] [--reveal 60] [--desks 3]
+// Sells escrow TSLAx devnet test tokens (minted to the sell desks by the mint authority in .keys/faucet.json).
 // Devnet only. Desk keys live in .keys/ (gitignored); funded from ~/.config/solana/id.json.
 import anchor from "@coral-xyz/anchor";
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from "@solana/web3.js";
 import { createHash, randomBytes } from "crypto";
+import { createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync, getAccount, mintTo } from "@solana/spl-token";
 import fs from "fs";
 import os from "os";
 const { AnchorProvider, Program, BN, Wallet } = anchor;
@@ -20,6 +22,14 @@ const admin = load(process.env.ADMIN_KEY ?? os.homedir() + "/.config/solana/id.j
 const idl = JSON.parse(fs.readFileSync(new URL("../target/idl/monday_open.json", import.meta.url)));
 const program = new Program(idl, new AnchorProvider(conn, new Wallet(admin), { commitment: "confirmed" }));
 const pid = program.programId;
+const dev = JSON.parse(fs.readFileSync(new URL("./devnet.json", import.meta.url)));
+const mint = new PublicKey(dev.mint), treasury = new PublicKey(dev.treasury);
+const SHARE = 1_000_000;
+const mintAuth = load(".keys/faucet.json");
+const gap = JSON.parse(fs.readFileSync(new URL("./data/tsla-weekend-gap.summary.json", import.meta.url))); // origin of the drift scale
+const ataOf = (k) => getAssociatedTokenAddressSync(mint, k);
+const tokenBal = async (k) => { try { return Number((await getAccount(conn, ataOf(k))).amount); } catch { return 0; } };
+const [config] = PublicKey.findProgramAddressSync([Buffer.from("config")], pid);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const chainNow = async () => (await conn.getBlockTime(await conn.getSlot())) ?? Math.floor(Date.now() / 1000);
 const until = async (t) => {
@@ -58,6 +68,7 @@ async function round(n) {
   const id = new BN(resume ? prev.id : Date.now());
   const [auction] = PublicKey.findProgramAddressSync([Buffer.from("auction"), admin.publicKey.toBuffer(), id.toArrayLike(Buffer, "le", 8)], pid);
   const [vault] = PublicKey.findProgramAddressSync([Buffer.from("vault"), auction.toBuffer()], pid);
+  const [tokenVault] = PublicKey.findProgramAddressSync([Buffer.from("tvault"), auction.toBuffer()], pid);
   const orderPda = (i) => { const b = Buffer.alloc(2); b.writeUInt16LE(i); return PublicKey.findProgramAddressSync([Buffer.from("order"), auction.toBuffer(), b], pid)[0]; };
   const now = await chainNow();
   let commitEnd = now + COMMIT, revealEnd = commitEnd + REVEAL;
@@ -71,8 +82,8 @@ async function round(n) {
       fs.writeFileSync(STATE, JSON.stringify({ ...prev, done: true })); return;
     }
   } else {
-  await program.methods.createAuction(id, "TSLAx", new BN(FRI), new BN(commitEnd), new BN(revealEnd)).accountsPartial({ auction, vault, authority: admin.publicKey }).rpc();
-  const drift = Math.round((Math.random() * 2 - 1) * 385);
+  await program.methods.createAuction(id, "TSLAx", new BN(FRI), new BN(commitEnd), new BN(revealEnd)).accountsPartial({ auction, vault, config, mint, tokenVault, authority: admin.publicKey }).rpc();
+  const drift = Math.round((Math.random() * 2 - 1) * gap.p90_abs_bps);
   const mid = Math.round(FRI * (1 + drift / 10000));
   console.log(`round ${n}: auction ${auction.toBase58()} drift ${drift}bps, commit ${COMMIT}s, reveal ${REVEAL}s`);
   orders = desks.map((kp, i) => {
@@ -80,6 +91,11 @@ async function round(n) {
     const price = Math.round(mid * (1 + ((side ? -1 : 1) * Math.random() * 80 - (side ? -20 : 20)) / 10000));
     return { kp, desk: i, side, price, qty: 1 + Math.floor(Math.random() * arg("maxqty", 2)), salt: randomBytes(32) };
   });
+  for (const o of orders) {
+    const a = ataOf(o.kp.publicKey);
+    if (!(await conn.getAccountInfo(a))) await sendAndConfirmTransaction(conn, new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(admin.publicKey, a, o.kp.publicKey, mint)), [admin]);
+    if (o.side === 1 && (await tokenBal(o.kp.publicKey)) < o.qty * SHARE) await mintTo(conn, admin, mint, a, mintAuth, 10 * SHARE);
+  }
   fs.writeFileSync(STATE, JSON.stringify({ id: id.toString(), auction: auction.toBase58(), commitEnd, revealEnd, round: n,
     orders: orders.map(({ kp, salt, ...o }) => ({ ...o, salt: salt.toString("hex") })) }, null, 1));
   for (const [i, o] of orders.entries()) {
@@ -92,13 +108,15 @@ async function round(n) {
   }
   await until(commitEnd + 1);
   for (const [i, o] of orders.entries())
-    await program.methods.revealOrder(o.side, new BN(o.price), new BN(o.qty), [...o.salt]).accountsPartial({ auction, order: orderPda(i), trader: o.kp.publicKey }).signers([o.kp]).rpc();
+    await program.methods.revealOrder(o.side, new BN(o.price), new BN(o.qty), [...o.salt]).accountsPartial({ auction, order: orderPda(i), traderAta: ataOf(o.kp.publicKey), tokenVault, trader: o.kp.publicKey }).signers([o.kp]).rpc();
   console.log("  revealed: " + orders.map((o) => `${o.side ? "S" : "B"}${o.qty}@$${(o.price / 10).toFixed(1)}`).join(" "));
   await until(revealEnd + 1);
-  await program.methods.clear().accountsPartial({ auction }).remainingAccounts(orders.map((_, i) => ({ pubkey: orderPda(i), isSigner: false, isWritable: false }))).rpc();
+  await program.methods.clear().accountsPartial({ auction }).remainingAccounts(orders.map((_, i) => ({ pubkey: orderPda(i), isSigner: false, isWritable: true }))).rpc();
   const a = await program.account.auction.fetch(auction);
+  const tre0 = await conn.getBalance(treasury);
   for (const [i, o] of orders.entries())
-    await program.methods.settle().accountsPartial({ auction, order: orderPda(i), vault, trader: o.kp.publicKey }).rpc();
+    await program.methods.settle().accountsPartial({ auction, order: orderPda(i), vault, trader: o.kp.publicKey, traderAta: ataOf(o.kp.publicKey), tokenVault, treasury }).rpc();
+  console.log(`  treasury fee +${(await conn.getBalance(treasury)) - tre0} lamports; vault ${await conn.getBalance(vault)} lamports, token vault ${Number((await getAccount(conn, tokenVault)).amount)} base units`);
   fs.writeFileSync(STATE, JSON.stringify({ auction: auction.toBase58(), done: true }));
   console.log(`  OPEN PRINT $${(a.clearPrice.toNumber() / 10).toFixed(2)} x ${a.matchedQty.toNumber()} (settled ${orders.length})`);
 }

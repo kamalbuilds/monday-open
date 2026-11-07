@@ -1,0 +1,10 @@
+{
+  "program": "BK1xCrXCRS3PaayeD93T69YCaAEkWQXaW1sYCzseCusA",
+  "mint": "AGZEh6XxRYEmN5HZDYMVciYUFRCiSEhGkVsdDVXkM61T",
+  "mintName": "TSLAx devnet test mint",
+  "decimals": 6,
+  "mintAuthority": "6jnznfgZ6CeJeq8WxdyrZXeL1ENuAihcDU5sFjtcyB11",
+  "config": "Bpm9xKSo26c9P6Qn1YMZQTtMArA8DfrqTbha2Z16JGD7",
+  "treasury": "8y5bYbA6DWRhV5uvLPqEEhoiCQbVbNptiyaW3UPRy7LE",
+  "feeBps": 10
+}

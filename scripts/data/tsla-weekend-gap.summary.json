@@ -1,0 +1,13 @@
+{
+  "symbol": "TSLA",
+  "source": "https://query1.finance.yahoo.com/v8/finance/chart/TSLA?range=3y&interval=1d",
+  "fetched_at": "2026-10-12T05:28:01.939Z",
+  "weekends": 136,
+  "first": "2023-10-13",
+  "last": "2026-10-05",
+  "mean_abs_bps": 178,
+  "median_abs_bps": 135,
+  "p90_abs_bps": 377,
+  "max_abs_bps": 1196,
+  "share_over_100bps": 63
+}

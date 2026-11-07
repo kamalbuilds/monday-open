@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from "r
 import { createRoot } from "react-dom/client";
 import { ArrowUpRight, Copy, Droplets, Lock, Radio, Timer } from "lucide-react";
 import "./styles.css";
-import { kp, pid, short, explorer, usd, FRI, fund, balance, runWeekend, liveBook, openPrints, slot, auctionOrders } from "./chain.js";
+import { kp, pid, short, explorer, usd, FRI, fund, balance, tokenBalance, faucetMessage, SELL_DEPOSIT, runWeekend, liveBook, openPrints, slot, auctionOrders } from "./chain.js";
 
 // MONDAY OPEN terminal (docs/design/DESIGN.md). Chain logic lives in chain.js.
 const Ctx = createContext(null);
@@ -13,12 +13,13 @@ function useTerminal() {
   const [book, setBook] = useState(null);
   const [prints, setPrints] = useState([]);
   const [bal, setBal] = useState(null);
+  const [tokens, setTokens] = useState(null);
   const [sl, setSl] = useState(null);
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
   const [px, setPx] = useState("384.10");
   const [last, setLast] = useState(null);
   const log = (msg, sig, tone = "info") => setTape((t) => [{ id: Date.now() + Math.random(), at: clock(), msg, sig, tone }, ...t].slice(0, 40));
-  const refreshBal = () => balance().then((l) => setBal(l / 1e9)).catch(() => {});
+  const refreshBal = () => { tokenBalance().then(setTokens).catch(() => {}); return balance().then((l) => setBal(l / 1e9)).catch(() => {}); };
   useEffect(() => {
     const load = () => { if (window.__moBusy) return; liveBook().then(setBook).catch(() => {}); openPrints().then((ps) => { setPrints(ps); const l = ps[ps.length - 1]; if (l) auctionOrders(l.a).then((orders) => setLast({ ...l, n: ps.length, orders })).catch(() => {}); }).catch(() => {}); slot().then(setSl).catch(() => {}); };
     load(); refreshBal(); fund().then(refreshBal);
@@ -32,7 +33,7 @@ function useTerminal() {
     log(`Order entry: ${side} ${qty} TSLAx, limit $${Number(priceUsd).toFixed(2)}`, null, side === "Buy" ? "bid" : "ask");
     let lastSig = null;
     try {
-      if (!(await fund((m) => setRun((r) => ({ ...r, msg: m }))))) throw new Error(`Burner has no devnet SOL. Send some to ${kp.publicKey.toBase58()}`);
+      if (!(await fund((m) => setRun((r) => ({ ...r, msg: m }))))) throw new Error(faucetMessage() || `Burner has no devnet SOL. Send some to ${kp.publicKey.toBase58()}`);
       await runWeekend(side === "Buy" ? 0 : 1, Math.round(Number(priceUsd) * 10), Math.max(1, Math.min(3, qty)), (u) => {
         setRun((r) => ({ ...r, ...u }));
         if (u.sig && u.sig !== lastSig) { lastSig = u.sig; log(u.msg.replace(/ [1-9A-HJ-NP-Za-km-z]{4}\.\.\.[1-9A-HJ-NP-Za-km-z]{4}/, ""), u.sig, u.phase === 4 ? "bid" : "info"); }
@@ -42,7 +43,7 @@ function useTerminal() {
     setRun((r) => ({ ...r, busy: false })); refreshBal();
   };
   const fundNow = async () => { log("Faucet drip requested for burner"); const ok = await fund(); await refreshBal(); log(ok ? "Burner funded" : "Faucet could not fund the burner", null, ok ? "bid" : "ask"); };
-  return { run, tape, book, prints, bal, sl, now, start, fundNow, px, setPx, last };
+  return { run, tape, book, prints, bal, tokens, sl, now, start, fundNow, px, setPx, last };
 }
 const bps = (px) => Math.round(((px - FRI) / FRI) * 10000);
 const bpsTxt = (b) => `${b >= 0 ? "+" : ""}${b} bps`;
@@ -91,7 +92,7 @@ function OrderEntry() {
   const [qty, setQty] = useState(1);
   const [confirm, setConfirm] = useState(false);
   const p = Math.max(0, Number(px) || 0);
-  const lock = side === "Buy" ? Math.round(p * 10) * qty * 1000 / 1e9 : 0.000001;
+  const lock = side === "Buy" ? Math.round(p * 10) * qty * 1000 / 1e9 : SELL_DEPOSIT / 1e9;
   const q = (n) => setQty(Math.max(1, Math.min(3, n)));
   const vs = bps(Math.round(p * 10));
   return <section className="tile card entry" id="order" aria-label="Order entry">
@@ -105,13 +106,13 @@ function OrderEntry() {
     <label className="in-l" htmlFor="qty">Quantity (shares, max 3)</label>
     <div className="qty"><button className="btn-sec" aria-label="Fewer shares" onClick={() => q(qty - 1)}>−</button><input id="qty" className="mono" type="number" min="1" max="3" value={qty} onChange={(e) => q(Number(e.target.value) || 1)} /><button className="btn-sec" aria-label="More shares" onClick={() => q(qty + 1)}>+</button></div>
     {confirm && !run.busy ? <div className="confirm" role="dialog" aria-label="Confirm sealed order">
-      <p><b>Check before sealing.</b> Nobody can see your limit until the reveal, and you can't change it after sealing. We will lock <b className="mono">{lock.toFixed(6)} SOL</b> escrow on devnet; anything you don't fill is refunded at settlement.</p>
+      <p><b>Check before sealing.</b> Nobody can see your limit until the reveal, and you can't change it after sealing. {side === "Buy" ? <>We will lock <b className="mono">{lock.toFixed(6)} SOL</b> escrow on devnet</> : <>We will lock <b className="mono">{qty} TSLAx</b> test token{qty > 1 ? "s" : ""} plus <b className="mono">{lock.toFixed(6)} SOL</b> on devnet</>}; anything you don't fill is refunded at settlement.</p>
       <div className="confirm-a"><button className="btn-primary" onClick={() => { setConfirm(false); start(side, px, qty); }}><Lock size={16} /> Confirm and seal</button><button className="btn-ghost" onClick={() => setConfirm(false)}>Edit order</button></div>
     </div> : <button className="btn-primary" onClick={() => setConfirm(true)} disabled={run.busy}>{run.busy ? <><Timer size={16} /> Weekend in progress…</> : <><Lock size={16} /> Seal and run to the open</>}</button>}
     <dl className="kv">
       <div><dt>Notional</dt><dd className="mono">${(p * qty).toFixed(2)}</dd></div>
-      <div><dt title="Devnet scale: $1 of notional escrows 0.00001 SOL">Escrow on devnet</dt><dd className="mono">{lock.toFixed(6)} SOL</dd></div>
-      <div><dt title="Five transactions plus rent for one auction and four order accounts (not reclaimed yet)">Fees and rent, est.</dt><dd className="mono">≈0.012 SOL</dd></div>
+      <div><dt title={side === "Buy" ? "Devnet scale: $1 of notional escrows 0.00001 SOL" : "A sell escrows its shares as TSLAx test tokens; the SOL is a refundable deposit"}>Escrow on devnet</dt><dd className="mono">{side === "Buy" ? `${lock.toFixed(6)} SOL` : `${qty} TSLAx + ${lock.toFixed(3)} SOL`}</dd></div>
+      <div><dt title="Five transactions plus rent for one auction, its token vault and four order accounts">Fees and rent, est.</dt><dd className="mono">≈0.012 SOL</dd></div>
       <p className="kv-note">Devnet escrow is scaled: $1 of notional locks 0.00001 SOL.</p>
     </dl>
     <p className="conseq">{side === "Buy" ? <>If Monday clears at or below <b className="mono">{usd(Math.round(p * 10))}</b>, you buy up to <b className="mono">{qty}</b> share{qty > 1 ? "s" : ""} at the single clearing price, never above your limit. Your limit is <b className={vs >= 0 ? "up-t" : "dn-t"}>{bpsTxt(vs)}</b> vs Friday close.</> : <>If Monday clears at or above <b className="mono">{usd(Math.round(p * 10))}</b>, you sell up to <b className="mono">{qty}</b> share{qty > 1 ? "s" : ""} at the single clearing price, never below your limit. Your limit is <b className={vs >= 0 ? "up-t" : "dn-t"}>{bpsTxt(vs)}</b> vs Friday close.</>}</p>
@@ -193,11 +194,12 @@ function Clock() {
 }
 
 function Wallet() {
-  const { bal, fundNow, run } = useContext(Ctx);
+  const { bal, tokens, fundNow, run } = useContext(Ctx);
   const a = kp.publicKey.toBase58();
   return <section className="tile card wallet" id="wallet" aria-label="Wallet">
     <header className="tile-h"><h2>Burner wallet</h2><Chip k={bal === null ? "mute" : bal >= 0.015 ? "bid" : "mute"}>{bal === null ? "Checking" : bal >= 0.015 ? "Ready" : "Tops up on run"}</Chip></header>
     <div className="w-bal"><span className="val mono">{bal === null ? "-" : bal.toFixed(3)}</span><span className="sub">devnet SOL · a run needs about 0.015</span></div>
+    <div className="w-bal"><span className="val mono">{tokens === null ? "-" : tokens}</span><span className="sub">TSLAx devnet test tokens · sells escrow these</span></div>
     <Hash kind="address" id={a} label={short(a)} />
     <div className="w-act"><button className="btn-sec" onClick={fundNow} disabled={run.busy}><Droplets size={14} /> Pre-fund now</button><button className="btn-ghost" onClick={() => navigator.clipboard?.writeText(a)}><Copy size={14} /> Copy address</button></div>
     <p className="sub">Created in this browser and kept in local storage. Devnet only; never send real funds.</p>
@@ -264,15 +266,15 @@ function Method() {
     <header className="tile-h"><h2>How the auction works</h2></header>
     <div className="spec-grid">
       <dl className="spec-dl">
-        <div><dt>Seal</dt><dd>The chain holds only a SHA-256 commitment and an escrow deposit per order. Limits stay invisible while trading against them would still pay.</dd></div>
-        <div><dt>Reveal</dt><dd>Each trader opens their commitment. A mismatched hash or an under-funded bid is rejected by the program.</dd></div>
+        <div><dt>Seal</dt><dd>The chain holds only a SHA-256 commitment and a SOL deposit per order. Limits stay invisible while trading against them would still pay.</dd></div>
+        <div><dt>Reveal</dt><dd>Each trader opens their commitment. A mismatched hash or an under-funded bid is rejected by the program, and a sell moves its TSLAx test tokens into escrow in the same transaction. A sell without the tokens cannot reveal.</dd></div>
         <div><dt>Clear</dt><dd>The program picks the one price that crosses the most shares. Every fill, bid or ask, settles at that price.</dd></div>
-        <div><dt>Settle</dt><dd>The vault pays fills, splits the heavy side pro rata and refunds everything else.</dd></div>
-        <div><dt>Why</dt><dd>Tokenized stocks can move about ±385 bps between Friday's close and Monday's open (team estimate, method in the README), on thin books with no underlying market.</dd></div>
+        <div><dt>Settle</dt><dd>Buyers receive TSLAx, sellers receive SOL minus a 10 bps fee to the treasury, and every unfilled share or lamport is refunded. The heavy side splits the matched shares by size with largest-remainder rounding, so fills sum exactly to the shares crossed.</dd></div>
+        <div><dt>Why</dt><dd>TSLA opened Monday a median 135 bps away from Friday's close across 136 weekends, 377 bps at the 90th percentile (Yahoo Finance daily bars, scripts/weekend-gap.mjs), while its tokens trade all weekend on thin books with no underlying market.</dd></div>
       </dl>
       <div className="spec-side">
         <div className="judge" id="judges"><h3>Try it in 20 seconds</h3><ol><li>Keep the default bid, or set a limit and size.</li><li>Press <b>Seal and run to the open</b>. No wallet extension needed.</li><li>Watch the tape fill with real devnet transactions, then read the clearing price and the blotter.</li></ol></div>
-        <div className="model"><h3>How it earns</h3><p>A few basis points on cleared notional, shared with the venue or wallet that routes orders into the auction.</p></div>
+        <div className="model"><h3>How it earns</h3><p>The program takes 10 basis points of every seller's proceeds at settlement and sends them to the treasury account.</p></div>
       </div>
     </div>
   </section>;
