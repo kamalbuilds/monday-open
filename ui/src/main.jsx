@@ -62,8 +62,8 @@ function TopBar() {
   return <header className="bar">
     <div className="logo"><span className="logo-mark" aria-hidden="true"><i /><i /><i /></span><span>MONDAY&nbsp;OPEN</span></div>
     <span className="bar-sym mono">TSLAx / SOL·devnet</span>
-    <a className="bar-m" href="#judges">Try it</a>
-    <nav className="bar-nav"><a href="#terminal">Terminal</a><a href="#blotter">Blotter</a><a href="#method">Method</a><a href="#judges">Try it</a></nav>
+    <a className="bar-m" href="#order">Try it</a>
+    <nav className="bar-nav"><a href="#terminal">Terminal</a><a href="#blotter">Blotter</a><a href="#method">Method</a><a href="#order">Try it</a></nav>
     <div className="bar-right">
       <span className="bar-meta mono">slot {sl ? sl.toLocaleString("en-US") : "…"}</span>
       <Chip k="bid"><Radio size={12} /> Devnet</Chip>
@@ -79,9 +79,9 @@ function Ticker() {
   return <section className="ticker" aria-label="Market summary">
     <div className="tick"><span className="lbl">Friday close</span><span className="val mono">{usd(FRI)}</span><span className="sub">reference for every round</span></div>
     <div className="tick tick-hero"><span className="lbl">Last uniform print</span><span className="val mono">{last ? usd(last) : "-"}</span>{last ? <Chip k={last >= FRI ? "bid" : "ask"}>{bpsTxt(bps(last))}</Chip> : <span className="sub">seeded round</span>}</div>
-    <div className="tick"><span className="lbl">Open gap, max</span><span className="val mono">{gaps.length ? `${Math.max(...gaps)} bps` : "-"}</span><span className="sub">{prints.length} on-chain prints</span></div>
+    <div className="tick"><span className="lbl">Open gap, max</span><span className="val mono">{gaps.length ? (() => { const g = prints.map((p) => bps(p.px)).reduce((a, b) => Math.abs(b) > Math.abs(a) ? b : a, 0); return bpsTxt(g); })() : "-"}</span><span className="sub">largest move vs Friday, {prints.length} prints</span></div>
     <div className="tick"><span className="lbl">Shares crossed</span><span className="val mono">{prints.reduce((t, p) => t + p.q, 0)}</span><span className="sub">across seeded rounds</span></div>
-    <div className="tick"><span className="lbl">Seeded auctions</span><span className="val mono">{book ? book.rounds : "-"}</span><span className="sub">{prints.length} cleared with a cross · <Chip k={w.k}>{w.left !== null ? `${w.label} ${mmss(w.left)}` : w.label}</Chip></span></div>
+    <div className="tick"><span className="lbl">Seeded auctions</span><span className="val mono">{book ? book.rounds : "-"}</span><span className="sub">{prints.length} with a clearing print · <Chip k={w.k}>{w.left !== null ? `${w.label} ${mmss(w.left)}` : w.label}</Chip></span></div>
   </section>;
 }
 
@@ -94,7 +94,7 @@ function OrderEntry() {
   const lock = side === "Buy" ? Math.round(p * 10) * qty * 1000 / 1e9 : 0.000001;
   const q = (n) => setQty(Math.max(1, Math.min(3, n)));
   const vs = bps(Math.round(p * 10));
-  return <section className="tile card entry" aria-label="Order entry">
+  return <section className="tile card entry" id="order" aria-label="Order entry">
     <header className="tile-h"><h2>Order entry</h2></header>
     <div className="toggle" role="radiogroup" aria-label="Side">
       {["Buy", "Sell"].map((s) => <button key={s} role="radio" aria-checked={side === s} className={side === s ? (s === "Buy" ? "is-bid" : "is-ask") : ""} onClick={() => setSide(s)}>{s === "Buy" ? "Bid" : "Ask"}</button>)}
@@ -138,7 +138,7 @@ function Chart() {
     </svg>;
   }
   return <section className="tile card chart-tile" aria-label="Open prints">
-    <header className="tile-h"><h2>Uniform open prints <span className="h-sub">· one point per round, not to time scale</span></h2>{live ? <span className="legend mono"><i /> Friday close {usd(FRI)}</span> : <Chip k="mute">Waiting for prints</Chip>}</header>
+    <header className="tile-h"><h2>Uniform open prints <span className="h-sub">one point per round, not to time scale</span></h2>{live ? <span className="legend mono"><i /> Friday close {usd(FRI)}</span> : <Chip k="mute">Waiting for prints</Chip>}</header>
     {live ? <div className="plot2">{body}</div> : <div className="plot-empty">No cleared seeded rounds on chain yet. Each round the seeder clears adds one point here, so nothing on this chart is simulated.</div>}
     {!live && <footer className="tile-f mono"><span>{book ? `${book.rounds} seeded auctions found` : "reading devnet…"}</span></footer>}
   </section>;
@@ -164,12 +164,12 @@ function Cross() {
   const W = narrow ? 340 : 600, H = 150, X = (q) => 70 + (q / (tq * 1.6)) * (W - 60), Y = (v) => H - 16 - ((v - lo) / (hi - lo)) * (H - 32);
   const steps = (arr, end) => { let q = 0, d = `M ${X(0)} ${Y(arr[0]?.price ?? last.px)}`; for (const o of arr) { d += ` V ${Y(o.price)}`; q += o.qty; d += ` H ${X(q)}`; } return d + ` V ${Y(end)} H ${W - 20}`; };
   const mq = last.q;
-  return <section className="tile card cross-tile" aria-label="Where bids met asks"><header className="tile-h"><h2>Where bids met asks <span className="h-sub">· last seeded auction #{last.n}</span></h2><Hash kind="address" id={last.a} /></header><p className="cross-cap">Bids and asks cross at <b className="mono">{usd(last.px)}</b> for <b className="mono">{mq}</b> shares, so every fill in this auction printed at that one price.</p><div className="cross">
+  return <section className="tile card cross-tile" aria-label="Where bids met asks"><header className="tile-h"><h2>Where bids met asks <span className="h-sub">last seeded auction #{last.n}</span></h2><Hash kind="address" id={last.a} /></header><p className="cross-cap">Bids and asks cross at <b className="mono">{usd(last.px)}</b> for <b className="mono">{mq}</b> shares, so every fill in this auction printed at that one price. Across: cumulative shares. Up: limit price.</p><div className="cross">
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Cumulative bids and asks crossing at the clearing price">
-      <line x1="40" x2={W - 20} y1={Y(last.px)} y2={Y(last.px)} className="cx-line" />
+      <line x1="70" x2={W - 20} y1={Y(last.px)} y2={Y(last.px)} className="cx-line" />
       <path d={steps(bids, lo)} className="cx-bid" /><path d={steps(asks, hi)} className="cx-ask" />
-      <line x1={X(mq)} x2={X(mq)} y1="8" y2={H - 16} className="cx-q" /><circle cx={X(mq)} cy={Y(last.px)} r="5" className="cx-dot" /><text x={X(mq) + 10} y={Y(last.px) - 8} className="cx-t">{mq} @ {usd(last.px)}</text>
-            <text x="70" y={H - 2} className="cx-ax">cumulative shares →</text>
+      {Array.from({ length: Math.floor(tq * 1.6) + 1 }, (_, q) => <text key={q} x={X(q)} y={H - 2} textAnchor="middle" className="cx-ax">{q}</text>)}<text x="4" y={Y(last.px) + 4} className="cx-t">{usd(last.px)}</text><line x1={X(mq)} x2={X(mq)} y1="8" y2={H - 16} className="cx-q" /><circle cx={X(mq)} cy={Y(last.px)} r="5" className="cx-dot" /><text x={X(mq) + 10} y={Y(last.px) - 8} className="cx-t">{mq} @ {usd(last.px)}</text>
+            
       {[hi, lo].map((v) => <text key={v} x="2" y={Y(v) + 4} className="cx-ax">{usd(v)}</text>)}
     </svg>
     <div className="cross-k mono"><span className="k-bid">Bids {bids.map((o) => `${o.qty}@${usd(o.price)}`).join("  ")}</span><span className="k-ask">Asks {asks.map((o) => `${o.qty}@${usd(o.price)}`).join("  ")}</span></div>
@@ -227,7 +227,7 @@ function Blotter() {
   const { run, last } = useContext(Ctx);
   const res = run.result, seeded = run.rows.length === 0 && last;
   return <section className="tile card blotter" id="blotter" aria-label="Fill blotter">
-    <header className="tile-h"><h2>Fill blotter{seeded ? <span className="h-sub"> · last seeded auction #{last.n}</span> : null}</h2>{run.auction ? <Hash kind="address" id={run.auction} label={`auction ${short(run.auction)}`} /> : seeded ? <Hash kind="address" id={last.a} label={`auction ${short(last.a)}`} /> : null}</header>
+    <header className="tile-h"><h2>Fill blotter{seeded ? <span className="h-sub">last seeded auction #{last.n}</span> : null}</h2>{run.auction ? <Hash kind="address" id={run.auction} label={`auction ${short(run.auction)}`} /> : seeded ? <Hash kind="address" id={last.a} label={`auction ${short(last.a)}`} /> : null}</header>
     <div className="blot-grid"><div className="tbl-wrap"><table className="tbl">
       <thead><tr><th>Trader</th><th>Side</th><th className="r">Qty</th><th className="r">Limit</th><th className="r">Fill</th><th className="r">Status</th></tr></thead>
       <tbody>
