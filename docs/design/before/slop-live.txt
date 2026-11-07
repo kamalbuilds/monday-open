@@ -1,0 +1,15 @@
+ok   webfont loaded
+ok   primary font: DMSans
+ok   tables: 0, none bare
+ok   no Markdown rendering
+ok   links styled
+ok   CSS variables defined (1 decls)
+ok   button styles present
+ok   status chips/badges styled (3)
+ok   surfaces/cards present
+ok   summary metrics present
+ok   radius ok
+rendered: face=DM Sans rounded=38 square=15 panels=15 status_plain=2 status_chip=0
+FAIL rendered: status shown as plain text (2 plain vs 0 chips)
+---
+slop-check: 1 issue(s)

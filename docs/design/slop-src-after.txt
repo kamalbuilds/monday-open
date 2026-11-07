@@ -1,0 +1,13 @@
+ok   webfont loaded
+ok   primary font: IBMPlexSans
+ok   tables: 1, none bare
+ok   no Markdown rendering
+ok   links styled
+ok   CSS variables defined (11 decls)
+ok   button styles present
+ok   status chips/badges styled (12)
+ok   surfaces/cards present
+ok   summary metrics present
+ok   radius ok
+---
+slop-check: PASS

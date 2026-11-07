@@ -1,5 +1,17 @@
-# Components (ui/)
+# Components (ui/, v3 terminal)
 
-Design and components are kaverimeshram's (github.com/kaverimeshram/monday), React + Vite, hand-built in src/main.jsx and src/styles.css. Icons: lucide-react (npm). We only wired data and handlers (src/chain.js) and added two content sections using the existing `content-section`, `gold-heading` and `phase-card panel` classes.
+All components are hand-built in `src/main.jsx` and `src/styles.css` against the tokens in `docs/design/DESIGN.md` (Carbon g100 structure from `~/.config/design-md/designs/ibm.md`). Icons: lucide-react.
 
-FALLBACK: no shadcn or 21st.dev components were added because the brief was to keep kaverimeshram's chosen design intact with no restyle; every component is from that design.
+| Component | Where | Notes |
+|---|---|---|
+| Ticker cell | `Ticker` | label, mono value, delta chip; hairline-separated grid |
+| Tile (`.tile.card`) | every pane | surface, hairline shadow, header row with status chip |
+| Chip | `Chip` | bid / ask / amber / cyan / mute, always with words |
+| Order entry | `OrderEntry` | bid/ask toggle, limit with bps-vs-Friday suffix, ±bp nudges, qty stepper, escrow summary, the single primary button |
+| Open-print plot | `Chart` | stem plot of real seeded clearing prices vs a dashed Friday-close line; no simulated data |
+| Auction clock | `Clock` | 4-segment phase track plus the clearing-price hero |
+| Tape | `Tape` | your run's transactions (explorer links) above the seeded print history |
+| Blotter | `Blotter` | styled table with status chips, hidden limits until reveal |
+| Method tiles | `Method` | mechanism, judge path, revenue model (marked Model), weekend rationale |
+
+FALLBACK: no 21st.dev or shadcn components were pulled because the terminal needs a dense, square, Carbon-style grid that those card-first kits don't provide. Every piece is small and built directly on the tokens.

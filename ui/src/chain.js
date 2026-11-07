@@ -105,20 +105,20 @@ export async function runWeekend(side, price, qty, update) {
     await commitIx(rows[0], 0), await commitIx(rows[1], 1))));
   rows.slice(0, 2).forEach((r) => (r.state = "Sealed"));
   push({ phase: 0, msg: `Sealed on-chain ${short(s1)}`, sig: s1, auction: auction.toBase58() });
-  await retry(async () => { const t2 = new Transaction(); for (let i = 2; i < rows.length; i++) t2.add(await commitIx(rows[i], i)); return provider.sendAndConfirm(t2); });
+  const s2 = await retry(async () => { const t2 = new Transaction(); for (let i = 2; i < rows.length; i++) t2.add(await commitIx(rows[i], i)); return provider.sendAndConfirm(t2); });
   rows.forEach((r) => (r.state = "Sealed"));
-  push({ phase: 1, msg: `All ${rows.length} orders sealed. Weekend closes in ~${Math.max(0, commitEnd - (await chainNow()))}s` });
+  push({ phase: 1, sig: s2, msg: `All ${rows.length} orders sealed. Weekend closes in ~${Math.max(0, commitEnd - (await chainNow()))}s` });
   await until(commitEnd + 1);
   const s3 = await retry(async () => { const t3 = new Transaction();
     for (const [i, o] of rows.entries()) t3.add(await program.methods.revealOrder(o.side, new BN(o.price), new BN(o.qty), [...o.salt]).accountsPartial({ auction, order: orderPda(i), trader: kp.publicKey }).instruction());
     return provider.sendAndConfirm(t3); });
   rows.forEach((r) => (r.state = "Revealed"));
-  push({ phase: 2, msg: `Revealed ${short(s3)}. Waiting for the Monday open...` });
+  push({ phase: 2, sig: s3, msg: `Revealed ${short(s3)}. Waiting for the Monday open...` });
   await until(revealEnd + 1);
   const rem = rows.map((_, i) => ({ pubkey: orderPda(i), isSigner: false, isWritable: false }));
   const s4 = await retry(() => program.methods.clear().accountsPartial({ auction }).remainingAccounts(rem).rpc(), 8);
   const a = await retry(() => program.account.auction.fetch(auction));
-  push({ phase: 3, msg: `Cleared ${short(s4)}. Settling...` });
+  push({ phase: 3, sig: s4, msg: `Cleared ${short(s4)}. Settling...` });
   const s5 = await retry(async () => { const t5 = new Transaction();
     for (let i = 0; i < rows.length; i++) t5.add(await program.methods.settle().accountsPartial({ auction, order: orderPda(i), vault, trader: kp.publicKey }).instruction());
     return provider.sendAndConfirm(t5); });
@@ -146,5 +146,11 @@ export async function openPrints(limit = 12) {
     .filter((x) => x.account.cleared && x.account.matchedQty.toNumber() > 0 && x.account.fridayClose.toNumber() === FRI)
     .sort((a, b) => a.account.revealEnd.toNumber() - b.account.revealEnd.toNumber())
     .slice(-limit)
-    .map((x) => ({ px: x.account.clearPrice.toNumber(), t: x.account.revealEnd.toNumber() }));
+    .map((x) => ({ px: x.account.clearPrice.toNumber(), q: x.account.matchedQty.toNumber(), t: x.account.revealEnd.toNumber(), a: x.publicKey.toBase58() }));
+}
+export const slot = () => conn.getSlot();
+/** All orders of one auction (for the last seeded round's book and cross). */
+export async function auctionOrders(auction) {
+  const os = await program.account.order.all([{ memcmp: { offset: 8, bytes: auction } }]);
+  return os.map((o) => ({ trader: o.account.trader.toBase58(), side: o.account.side, price: o.account.price.toNumber(), qty: o.account.qty.toNumber(), filled: o.account.filled.toNumber(), revealed: o.account.revealed, i: o.account.index })).sort((a, b) => a.i - b.i);
 }

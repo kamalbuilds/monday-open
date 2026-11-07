@@ -1,0 +1,14 @@
+ok   webfont loaded
+ok   primary font: IBMPlexSans
+ok   tables: 0, none bare
+ok   no Markdown rendering
+ok   links styled
+ok   CSS variables defined (1 decls)
+ok   button styles present
+ok   status chips/badges styled (3)
+ok   surfaces/cards present
+ok   summary metrics present
+ok   radius ok
+rendered: face=IBM Plex Sans rounded=42 square=33 panels=17 status_plain=0 status_chip=0
+---
+slop-check: PASS

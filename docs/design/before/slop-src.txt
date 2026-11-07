@@ -1,0 +1,13 @@
+ok   webfont loaded
+ok   primary font: DMSans
+ok   tables: 0, none bare
+ok   no Markdown rendering
+ok   links styled
+ok   CSS variables defined (1 decls)
+ok   button styles present
+ok   status chips/badges styled (4)
+ok   surfaces/cards present
+ok   summary metrics present
+ok   radius ok
+---
+slop-check: PASS
