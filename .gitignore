@@ -17,3 +17,7 @@ mitm_mcp_traffic.db
 ui/dist/
 ui/.wrangler/
 .progress/
+
+# local Cloudflare secrets (wrangler pages dev reads these; never pass keys as CLI args)
+.dev.vars
+.dev.vars.*
