@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from "r
 import { createRoot } from "react-dom/client";
 import { ArrowUpRight, Copy, Droplets, Lock, Radio, Timer } from "lucide-react";
 import "./styles.css";
-import { kp, pid, short, explorer, usd, FRI, fund, balance, tokenBalance, faucetMessage, SELL_DEPOSIT, BUY_CEIL, runWeekend, liveBook, openPrints, slot, auctionOrders } from "./chain.js";
+import { kp, pid, short, explorer, usd, FRI, fund, balance, tokenBalance, faucetMessage, SELL_DEPOSIT, BUY_CEIL, connectPhantom, runWeekend, liveBook, openPrints, slot, auctionOrders } from "./chain.js";
 
 // MONDAY OPEN terminal (docs/design/DESIGN.md). Chain logic lives in chain.js.
 const Ctx = createContext(null);
@@ -42,8 +42,10 @@ function useTerminal() {
     window.__moBusy = false;
     setRun((r) => ({ ...r, busy: false })); refreshBal();
   };
+  const [phantom, setPhantom] = useState(null);
+  const connect = async () => { try { const k = await connectPhantom(); setPhantom(k); log(`Phantom connected ${short(k)}`, null, "bid"); } catch (e) { log("Phantom: " + (e?.message ?? e), null, "ask"); } };
   const fundNow = async () => { log("Faucet drip requested for burner"); const ok = await fund(); await refreshBal(); log(ok ? "Burner funded" : "Faucet could not fund the burner", null, ok ? "bid" : "ask"); };
-  return { run, tape, book, prints, bal, tokens, sl, now, start, fundNow, px, setPx, last };
+  return { run, tape, book, prints, bal, tokens, sl, now, start, fundNow, px, setPx, last, phantom, connect };
 }
 const bps = (px) => Math.round(((px - FRI) / FRI) * 10000);
 const bpsTxt = (b) => `${b >= 0 ? "+" : ""}${b} bps`;
@@ -87,7 +89,7 @@ function Ticker() {
 }
 
 function OrderEntry() {
-  const { run, start, px, setPx } = useContext(Ctx);
+  const { run, start, px, setPx, phantom } = useContext(Ctx);
   const [side, setSide] = useState("Buy");
   const [qty, setQty] = useState(1);
   const [confirm, setConfirm] = useState(false);
@@ -108,7 +110,7 @@ function OrderEntry() {
     {confirm && !run.busy ? <div className="confirm" role="dialog" aria-label="Confirm sealed order">
       <p><b>Check before sealing.</b> Nobody can see your limit until the reveal, and you can't change it after sealing. {side === "Buy" ? <>We will lock <b className="mono">{lock.toFixed(6)} SOL</b> escrow on devnet</> : <>We will lock <b className="mono">{qty} TSLAx</b> test token{qty > 1 ? "s" : ""} plus <b className="mono">{lock.toFixed(6)} SOL</b> on devnet</>}; anything you don't fill is refunded at settlement.</p>
       <div className="confirm-a"><button className="btn-primary" onClick={() => { setConfirm(false); start(side, px, qty); }}><Lock size={16} /> Confirm and seal</button><button className="btn-ghost" onClick={() => setConfirm(false)}>Edit order</button></div>
-    </div> : <button className="btn-primary" onClick={() => setConfirm(true)} disabled={run.busy}>{run.busy ? <><Timer size={16} /> Weekend in progress…</> : <><Lock size={16} /> Seal and run to the open</>}</button>}
+    </div> : <button className="btn-primary" onClick={() => setConfirm(true)} disabled={run.busy}>{run.busy ? <><Timer size={16} /> Weekend in progress…</> : <><Lock size={16} /> {phantom && side === "Buy" ? "Seal with Phantom" : "Seal and run to the open"}</>}</button>}
     <dl className="kv">
       <div><dt>Notional</dt><dd className="mono">${(p * qty).toFixed(2)}</dd></div>
       <div><dt title={side === "Buy" ? "Devnet scale: $1 of notional escrows 0.00001 SOL" : "A sell escrows its shares as TSLAx test tokens; the SOL is a refundable deposit"}>Escrow on devnet</dt><dd className="mono">{side === "Buy" ? `${lock.toFixed(6)} SOL` : `${qty} TSLAx + ${lock.toFixed(3)} SOL`}</dd></div>
@@ -147,7 +149,7 @@ function Chart() {
 }
 
 const PH = ["Seal", "Reveal", "Clear", "Settle"];
-const STEP_T = ["now", "at 12 s", "at 24 s", "by ~30 s"];
+const stepT = (w = 12) => ["now", `at ${w} s`, `at ${2 * w} s`, `by ~${2 * w + 6} s`];
 function useNarrow() {
   const q = "(max-width: 760px)";
   const [n, setN] = useState(() => window.matchMedia(q).matches);
@@ -185,7 +187,7 @@ function Clock() {
   const res = run.result, cur = run.phase;
   return <section className="tile card clock" aria-label="Auction clock">
     <header className="tile-h"><h2>Your auction</h2><Chip k={run.busy ? "amber" : res ? "bid" : "mute"}>{run.busy ? "Live" : res ? "Settled" : "Waiting for your seal"}</Chip></header>
-    <div className={`track ${cur < 0 && !res && !run.busy ? "idle" : ""}`}>{PH.map((p, i) => { const done = cur === 4 || i < cur, on = i === cur && cur < 4, next = false; return <div key={p} className={`seg ${done ? "done" : ""} ${on ? "on" : ""} ${cur < 0 && !res && !run.busy && i === 0 ? "next" : ""}`}><span className="seg-bar" /><span className="seg-l mono">{p}</span><span className="seg-t mono">{STEP_T[i]}</span></div>; })}</div>
+    <div className={`track ${cur < 0 && !res && !run.busy ? "idle" : ""}`}>{PH.map((p, i) => { const done = cur === 4 || i < cur, on = i === cur && cur < 4, next = false; return <div key={p} className={`seg ${done ? "done" : ""} ${on ? "on" : ""} ${cur < 0 && !res && !run.busy && i === 0 ? "next" : ""}`}><span className="seg-bar" /><span className="seg-l mono">{p}</span><span className="seg-t mono">{stepT(run.win)[i]}</span></div>; })}</div>
     {res || run.busy ? <div className="clear-hero">
       <span className="lbl">{res?.m ? "Your clearing price" : "Your limit, sealed until the reveal"}</span><span className="big mono">{res?.m ? usd(res.px) : run.rows.length ? "••••" : "…"}</span>
       <span className="sub">{res ? (res.m ? <>{res.m} share{res.m > 1 ? "s" : ""} crossed · {bpsTxt(res.bps)} vs Friday · you {res.you ? `filled ${res.you}` : "were refunded"}</> : "No cross: every order refunded") : run.msg}</span>
@@ -194,7 +196,7 @@ function Clock() {
 }
 
 function Wallet() {
-  const { bal, tokens, fundNow, run } = useContext(Ctx);
+  const { bal, tokens, fundNow, run, phantom, connect } = useContext(Ctx);
   const a = kp.publicKey.toBase58();
   return <section className="tile card wallet" id="wallet" aria-label="Wallet">
     <header className="tile-h"><h2>Burner wallet</h2><Chip k={bal === null ? "mute" : bal >= 0.015 ? "bid" : "mute"}>{bal === null ? "Checking" : bal >= 0.015 ? "Ready" : "Tops up on run"}</Chip></header>
@@ -203,6 +205,8 @@ function Wallet() {
     <Hash kind="address" id={a} label={short(a)} />
     <div className="w-act"><button className="btn-sec" onClick={fundNow} disabled={run.busy}><Droplets size={14} /> Pre-fund now</button><button className="btn-ghost" onClick={() => navigator.clipboard?.writeText(a)}><Copy size={14} /> Copy address</button></div>
     <p className="sub">Created in this browser and kept in local storage. Devnet only; never send real funds.</p>
+    <div className="w-act">{phantom ? <Hash kind="address" id={phantom} label={`Phantom ${short(phantom)} signs your bids`} /> : <button className="btn-sec" onClick={connect} disabled={run.busy}>Connect Phantom</button>}</div>
+    <p className="sub">Optional. With Phantom on devnet, you approve your own bid's seal and reveal; the burner runs the counter-orders.</p>
   </section>;
 }
 

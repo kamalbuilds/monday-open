@@ -3,7 +3,7 @@
 import { Buffer } from "buffer";
 globalThis.Buffer = Buffer;
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
-import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction } from "@solana/web3.js";
 import { createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync, getAccount } from "@solana/spl-token";
 import idl from "./idl.json";
 
@@ -53,6 +53,28 @@ async function sha(side, price, qty, salt, who) {
 }
 
 export const balance = () => conn.getBalance(kp.publicKey);
+
+// Phantom, once the visitor connects it, signs the visitor's own bid (seal and reveal). The burner keeps
+// running the auction and the three counter-orders, so the one-click path needs no extension.
+let ext = null;
+export async function connectPhantom() {
+  const p = window.phantom?.solana;
+  if (!p?.isPhantom) throw new Error("Phantom is not installed in this browser.");
+  await p.connect();
+  ext = p;
+  return p.publicKey.toBase58();
+}
+// Phantom signs first (it may append its own instructions), then the burner co-signs the final message.
+async function sendSigned(tx, byPhantom) {
+  if (!byPhantom) return provider.sendAndConfirm(tx);
+  const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+  tx.feePayer = ext.publicKey; tx.recentBlockhash = blockhash;
+  const signed = await ext.signTransaction(tx);
+  signed.partialSign(kp);
+  const sig = await conn.sendRawTransaction(signed.serialize());
+  await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
+  return sig;
+}
 export const ata = getAssociatedTokenAddressSync(MINT, kp.publicKey);
 export const tokenBalance = async () => { try { return Number((await getAccount(conn, ata)).amount) / SHARE; } catch { return 0; } };
 let faucetNote = "";
@@ -123,24 +145,38 @@ const until = async (t) => { while (Date.now() / 1000 + skew < t) await sleep(30
 export async function runWeekend(side, price, qty, update) {
   const rows = [{ who: "You", side, price, qty }, ...seededBook()].map((o) => ({ ...o, salt: crypto.getRandomValues(new Uint8Array(32)), state: "Sealing", filled: 0 }));
   const push = (o) => update({ rows: rows.map((r) => ({ ...r })), ...o });
-  push({ phase: 0, msg: "Sealing your order on devnet..." });
   const id = new BN(Date.now());
   const [auction] = PublicKey.findProgramAddressSync([Buffer.from("auction"), kp.publicKey.toBuffer(), id.toArrayLike(Buffer, "le", 8)], pid);
   const [vault] = PublicKey.findProgramAddressSync([Buffer.from("vault"), auction.toBuffer()], pid);
   const [tokenVault] = PublicKey.findProgramAddressSync([Buffer.from("tvault"), auction.toBuffer()], pid);
   const [config] = PublicKey.findProgramAddressSync([Buffer.from("config")], pid);
   const orderPda = (i) => { const b = Buffer.alloc(2); b.writeUInt16LE(i); return PublicKey.findProgramAddressSync([Buffer.from("order"), auction.toBuffer(), b], pid)[0]; };
+  // The visitor's bid goes through Phantom when it is connected; a human approval needs longer windows than the burner.
+  const me = side === 0 && ext ? ext.publicKey : kp.publicKey, viaPhantom = !me.equals(kp.publicKey);
+  const owner = (i) => (i === 0 ? me : kp.publicKey);
+  const ataOf = (i) => (i === 0 ? getAssociatedTokenAddressSync(MINT, me) : ata);
+  const win = viaPhantom ? 30 : 12;
+  push({ phase: 0, win, msg: viaPhantom ? "Sealing your bid with Phantom..." : "Sealing your order on devnet..." });
+  if (viaPhantom) {
+    const need = 0.02 * LAMPORTS_PER_SOL, have = await conn.getBalance(me);
+    if (have < need) {
+      push({ phase: 0, win, msg: "Topping up your Phantom devnet balance from the burner..." });
+      await retry(() => provider.sendAndConfirm(new Transaction().add(SystemProgram.transfer({ fromPubkey: kp.publicKey, toPubkey: me, lamports: need - have }))));
+    }
+  }
   const now = await chainNow();
-  const commitEnd = now + 12, revealEnd = commitEnd + 12;
+  const commitEnd = now + win, revealEnd = commitEnd + win;
   if (side === 0 && price > BUY_CEIL) throw new Error(`Bids are limited to ${usd(BUY_CEIL)} a share in this auction.`);
   const dep = (o) => (o.side === 0 ? o.qty * BUY_CEIL * TICK : SELL_DEPOSIT);
   const sellShares = rows.reduce((t, o) => t + (o.side === 1 ? o.qty : 0), 0);
   if (!(await ensureTokens(sellShares, (m) => push({ phase: 0, msg: m })))) throw new Error(`Burner needs ${sellShares} TSLAx test tokens to escrow its sells. ${faucetNote || "Faucet could not mint them."}`);
-  const commitIx = async (o, i) => program.methods.commitOrder(await sha(o.side, o.price, o.qty, o.salt, kp.publicKey), new BN(dep(o)))
-    .accountsPartial({ auction, order: orderPda(i), vault, trader: kp.publicKey }).instruction();
-  const s1 = await retry(async () => provider.sendAndConfirm(new Transaction().add(
-    await program.methods.createAuction(id, "TSLAx", new BN(FRI), new BN(commitEnd), new BN(revealEnd)).accountsPartial({ auction, vault, config, mint: MINT, tokenVault, authority: kp.publicKey }).instruction(),
-    await commitIx(rows[0], 0), await commitIx(rows[1], 1))));
+  const commitIx = async (o, i) => program.methods.commitOrder(await sha(o.side, o.price, o.qty, o.salt, owner(i)), new BN(dep(o)))
+    .accountsPartial({ auction, order: orderPda(i), vault, trader: owner(i) }).instruction();
+  const s1 = await retry(async () => { const t1 = new Transaction();
+    if (viaPhantom) t1.add(createAssociatedTokenAccountIdempotentInstruction(me, ataOf(0), me, MINT));
+    t1.add(await program.methods.createAuction(id, "TSLAx", new BN(FRI), new BN(commitEnd), new BN(revealEnd)).accountsPartial({ auction, vault, config, mint: MINT, tokenVault, authority: kp.publicKey }).instruction(),
+      await commitIx(rows[0], 0), await commitIx(rows[1], 1));
+    return sendSigned(t1, viaPhantom); }, viaPhantom ? 1 : 6);
   rows.slice(0, 2).forEach((r) => (r.state = "Sealed"));
   push({ phase: 0, msg: `Sealed on-chain ${short(s1)}`, sig: s1, auction: auction.toBase58() });
   const s2 = await retry(async () => { const t2 = new Transaction(); for (let i = 2; i < rows.length; i++) t2.add(await commitIx(rows[i], i)); return provider.sendAndConfirm(t2); });
@@ -148,8 +184,8 @@ export async function runWeekend(side, price, qty, update) {
   push({ phase: 1, sig: s2, msg: `All ${rows.length} orders sealed. Weekend closes in ~${Math.max(0, commitEnd - (await chainNow()))}s` });
   await until(commitEnd + 1);
   const s3 = await retry(async () => { const t3 = new Transaction();
-    for (const [i, o] of rows.entries()) t3.add(await program.methods.revealOrder(o.side, new BN(o.price), new BN(o.qty), [...o.salt]).accountsPartial({ auction, order: orderPda(i), traderAta: ata, tokenVault, trader: kp.publicKey }).instruction());
-    return provider.sendAndConfirm(t3); });
+    for (const [i, o] of rows.entries()) t3.add(await program.methods.revealOrder(o.side, new BN(o.price), new BN(o.qty), [...o.salt]).accountsPartial({ auction, order: orderPda(i), traderAta: ataOf(i), tokenVault, trader: owner(i) }).instruction());
+    return sendSigned(t3, viaPhantom); }, viaPhantom ? 1 : 6);
   rows.forEach((r) => (r.state = "Revealed"));
   push({ phase: 2, sig: s3, msg: `Revealed ${short(s3)}. Waiting for the Monday open...` });
   await until(revealEnd + 1);
@@ -158,7 +194,7 @@ export async function runWeekend(side, price, qty, update) {
   const a = await retry(() => program.account.auction.fetch(auction));
   push({ phase: 3, sig: s4, msg: `Cleared ${short(s4)}. Settling...` });
   const s5 = await retry(async () => { const t5 = new Transaction();
-    for (let i = 0; i < rows.length; i++) t5.add(await program.methods.settle().accountsPartial({ auction, order: orderPda(i), vault, trader: kp.publicKey, traderAta: ata, tokenVault, treasury: TREASURY }).instruction());
+    for (let i = 0; i < rows.length; i++) t5.add(await program.methods.settle().accountsPartial({ auction, order: orderPda(i), vault, trader: owner(i), traderAta: ataOf(i), tokenVault, treasury: TREASURY }).instruction());
     return provider.sendAndConfirm(t5); });
   const fills = await retry(() => program.account.order.fetchMultiple(rows.map((_, i) => orderPda(i))));
   rows.forEach((r, i) => { r.filled = fills[i].filled.toNumber(); r.state = r.filled ? "Filled" : "Refunded"; });
