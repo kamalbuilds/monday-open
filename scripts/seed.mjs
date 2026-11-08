@@ -99,7 +99,7 @@ async function round(n) {
   fs.writeFileSync(STATE, JSON.stringify({ id: id.toString(), auction: auction.toBase58(), commitEnd, revealEnd, round: n,
     orders: orders.map(({ kp, salt, ...o }) => ({ ...o, salt: salt.toString("hex") })) }, null, 1));
   for (const [i, o] of orders.entries()) {
-    const dep = o.side === 0 ? o.qty * o.price * TICK : 1000;
+    const dep = o.side === 0 ? o.qty * 4200 * TICK : 1000; // fixed $420 ceiling, same as ui/src/chain.js BUY_CEIL: a deposit must not reveal its limit
     const tx = await program.methods.commitOrder(hash(o.side, o.price, o.qty, o.salt, o.kp.publicKey), new BN(dep))
       .accountsPartial({ auction, order: orderPda(i), vault, trader: o.kp.publicKey }).signers([o.kp]).rpc();
     console.log(`  sealed #${i} ${o.kp.publicKey.toBase58().slice(0, 6)} ${tx.slice(0, 10)}…`);

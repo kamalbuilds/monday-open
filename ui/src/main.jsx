@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from "r
 import { createRoot } from "react-dom/client";
 import { ArrowUpRight, Copy, Droplets, Lock, Radio, Timer } from "lucide-react";
 import "./styles.css";
-import { kp, pid, short, explorer, usd, FRI, fund, balance, tokenBalance, faucetMessage, SELL_DEPOSIT, runWeekend, liveBook, openPrints, slot, auctionOrders } from "./chain.js";
+import { kp, pid, short, explorer, usd, FRI, fund, balance, tokenBalance, faucetMessage, SELL_DEPOSIT, BUY_CEIL, runWeekend, liveBook, openPrints, slot, auctionOrders } from "./chain.js";
 
 // MONDAY OPEN terminal (docs/design/DESIGN.md). Chain logic lives in chain.js.
 const Ctx = createContext(null);
@@ -92,7 +92,7 @@ function OrderEntry() {
   const [qty, setQty] = useState(1);
   const [confirm, setConfirm] = useState(false);
   const p = Math.max(0, Number(px) || 0);
-  const lock = side === "Buy" ? Math.round(p * 10) * qty * 1000 / 1e9 : SELL_DEPOSIT / 1e9;
+  const lock = side === "Buy" ? BUY_CEIL * qty * 1000 / 1e9 : SELL_DEPOSIT / 1e9;
   const q = (n) => setQty(Math.max(1, Math.min(3, n)));
   const vs = bps(Math.round(p * 10));
   return <section className="tile card entry" id="order" aria-label="Order entry">
@@ -101,7 +101,7 @@ function OrderEntry() {
       {["Buy", "Sell"].map((s) => <button key={s} role="radio" aria-checked={side === s} className={side === s ? (s === "Buy" ? "is-bid" : "is-ask") : ""} onClick={() => setSide(s)}>{s === "Buy" ? "Bid" : "Ask"}</button>)}
     </div>
     <label className="in-l" htmlFor="px">Limit (USD per share)</label>
-    <div className="in"><input id="px" className="mono" type="number" step="0.1" min="0.1" value={px} onChange={(e) => setPx(e.target.value)} /><span className="in-sfx mono">{bpsTxt(vs)}</span></div>
+    <div className="in"><input id="px" className="mono" type="number" step="0.1" min="0.1" max={side === "Buy" ? BUY_CEIL / 10 : undefined} value={px} onChange={(e) => setPx(e.target.value)} /><span className="in-sfx mono">{bpsTxt(vs)}</span></div>
     <div className="nudges">{[-50, -10, 10, 50].map((d) => <button key={d} className="btn-sec mono" onClick={() => setPx((Math.round(FRI * (1 + d / 10000)) / 10).toFixed(2))}>{d > 0 ? "+" : ""}{d}bp</button>)}</div>
     <label className="in-l" htmlFor="qty">Quantity (shares, max 3)</label>
     <div className="qty"><button className="btn-sec" aria-label="Fewer shares" onClick={() => q(qty - 1)}>−</button><input id="qty" className="mono" type="number" min="1" max="3" value={qty} onChange={(e) => q(Number(e.target.value) || 1)} /><button className="btn-sec" aria-label="More shares" onClick={() => q(qty + 1)}>+</button></div>
@@ -113,7 +113,7 @@ function OrderEntry() {
       <div><dt>Notional</dt><dd className="mono">${(p * qty).toFixed(2)}</dd></div>
       <div><dt title={side === "Buy" ? "Devnet scale: $1 of notional escrows 0.00001 SOL" : "A sell escrows its shares as TSLAx test tokens; the SOL is a refundable deposit"}>Escrow on devnet</dt><dd className="mono">{side === "Buy" ? `${lock.toFixed(6)} SOL` : `${qty} TSLAx + ${lock.toFixed(3)} SOL`}</dd></div>
       <div><dt title="Five transactions plus rent for one auction, its token vault and four order accounts">Fees and rent, est.</dt><dd className="mono">≈0.012 SOL</dd></div>
-      <p className="kv-note">Devnet escrow is scaled: $1 of notional locks 0.00001 SOL.</p>
+      <p className="kv-note">Every bid escrows $420.00 a share, whatever its limit, so the deposit on chain does not give the limit away. Settlement refunds the difference. Devnet escrow is scaled: $1 of notional locks 0.00001 SOL.</p>
     </dl>
     <p className="conseq">{side === "Buy" ? <>If Monday clears at or below <b className="mono">{usd(Math.round(p * 10))}</b>, you buy up to <b className="mono">{qty}</b> share{qty > 1 ? "s" : ""} at the single clearing price, never above your limit. Your limit is <b className={vs >= 0 ? "up-t" : "dn-t"}>{bpsTxt(vs)}</b> vs Friday close.</> : <>If Monday clears at or above <b className="mono">{usd(Math.round(p * 10))}</b>, you sell up to <b className="mono">{qty}</b> share{qty > 1 ? "s" : ""} at the single clearing price, never below your limit. Your limit is <b className={vs >= 0 ? "up-t" : "dn-t"}>{bpsTxt(vs)}</b> vs Friday close.</>}</p>
     <p className="entry-msg" aria-live="polite">{run.msg || "Seals next to three seeded orders, then reveals, clears and settles on devnet. Faucet tops up the burner if needed."}</p>

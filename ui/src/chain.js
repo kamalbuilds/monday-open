@@ -15,6 +15,7 @@ export const SEEDER = new PublicKey("GhyXbXu7y3DVptMiSPBri12rGMxJBKtex4hWSa6bfg9
 export const MINT = new PublicKey("AGZEh6XxRYEmN5HZDYMVciYUFRCiSEhGkVsdDVXkM61T");
 export const TREASURY = new PublicKey("8y5bYbA6DWRhV5uvLPqEEhoiCQbVbNptiyaW3UPRy7LE");
 export const SHARE = 1_000_000; // token base units per share
+export const BUY_CEIL = 4200; // $420.00: every bid escrows qty x this ceiling, so a deposit on chain says nothing about its limit; settle refunds the excess
 export const SELL_DEPOSIT = 1_000_000; // lamports a sell locks next to its escrowed tokens; refunded at settle
 // Auction account size (8 + INIT_SPACE). Accounts from the pre-escrow program have another size and cannot decode.
 const AUCTION_SIZE = 193;
@@ -131,7 +132,8 @@ export async function runWeekend(side, price, qty, update) {
   const orderPda = (i) => { const b = Buffer.alloc(2); b.writeUInt16LE(i); return PublicKey.findProgramAddressSync([Buffer.from("order"), auction.toBuffer(), b], pid)[0]; };
   const now = await chainNow();
   const commitEnd = now + 12, revealEnd = commitEnd + 12;
-  const dep = (o) => (o.side === 0 ? o.qty * o.price * TICK : SELL_DEPOSIT);
+  if (side === 0 && price > BUY_CEIL) throw new Error(`Bids are limited to ${usd(BUY_CEIL)} a share in this auction.`);
+  const dep = (o) => (o.side === 0 ? o.qty * BUY_CEIL * TICK : SELL_DEPOSIT);
   const sellShares = rows.reduce((t, o) => t + (o.side === 1 ? o.qty : 0), 0);
   if (!(await ensureTokens(sellShares, (m) => push({ phase: 0, msg: m })))) throw new Error(`Burner needs ${sellShares} TSLAx test tokens to escrow its sells. ${faucetNote || "Faucet could not mint them."}`);
   const commitIx = async (o, i) => program.methods.commitOrder(await sha(o.side, o.price, o.qty, o.salt, kp.publicKey), new BN(dep(o)))
